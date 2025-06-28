@@ -1,0 +1,7 @@
+torch
+transformers
+tiktoken
+fastapi
+uvicorn
+pydantic
+numpy<2.0
