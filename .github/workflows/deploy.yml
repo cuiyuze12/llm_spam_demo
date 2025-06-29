@@ -3,7 +3,8 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - main
+      - main  # 或者你的主分支名
+  workflow_dispatch:  # 👈 加上这个就能显示手动按钮
 
 jobs:
   deploy:
