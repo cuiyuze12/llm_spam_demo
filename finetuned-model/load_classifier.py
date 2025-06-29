@@ -1,19 +1,7 @@
-#from pkg_resources import get_distribution, DistributionNotFound
-
-#pkgs = ["tiktoken", "torch"]
-
-#for p in pkgs:
-#   try:
-#       v = get_distribution(p).version
-#       print(f"{p} version: {v}")
-#   except DistributionNotFound:
-#       print(f"{p} not installed.")
 import torch
 import tiktoken
-
-
-
-
+import os
+import boto3
 from mygpt import GPTModel
 
 
@@ -35,7 +23,23 @@ CHOOSE_MODEL = "gpt2-small (124M)"
 
 BASE_CONFIG.update(model_configs[CHOOSE_MODEL])
 
+def download_model_from_s3(bucket_name, object_key, local_path):
+    if not os.path.exists(local_path):
+        print(f"Downloading model from s3://{bucket_name}/{object_key} ...")
+        s3 = boto3.client("s3")
+        s3.download_file(bucket_name, object_key, local_path)
+        print("Download complete.")
+    else:
+        print("Model file already exists. Skipping download.")
+
 def load_model_and_tokenizer():
+    model_path = "review_classifier.pth"
+    download_model_from_s3(
+        bucket_name="llm-demo-models",
+        object_key="models/review_classifier.pth",
+        local_path=model_path
+    )
+
     from pathlib import Path
 
     finetuned_model_path = Path("review_classifier.pth")
@@ -89,24 +93,4 @@ def classify_review(text, model, tokenizer, device, max_length=120, pad_token_id
 
     # Return the classified result
     return "spam" if predicted_label == 1 else "not spam"
-
-# if __name__ == "__main__":
-# text_1 = (
-#     "You are a winner you have been specially"
-#     " selected to receive $1000 cash or a $2000 award."
-# )
-# 
-# print(text_1 + "->" +  classify_review(
-#     text_1, model, tokenizer, device, max_length=120
-# ))
-# 
-# text_2 = (
-#     "Hey, just wanted to check if we're still on"
-#     " for dinner tonight? Let me know!"
-# )
-# 
-# print(text_2 + "->" +  classify_review(
-#     text_2, model, tokenizer, device, max_length=120
-# ))
-
 
