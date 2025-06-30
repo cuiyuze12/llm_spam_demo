@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import random
 from inference import predict
-from load_classifier import load_model_and_tokenizer, classify_review
+from finetuned_model.load_classifier import load_model_and_tokenizer, classify_review
 
 app = FastAPI()
 
@@ -19,8 +19,11 @@ class PredictResponse(BaseModel):
     confidence: float
 
 @app.get("/")
-def read_root():
-    return {"message": "Hello from FastAPI on EC2!"}
+def read_index():
+    return FileResponse("static/index.html")
+
+# 挂载整个 static 目录（可选：用于支持 css, js）
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.post("/predict", response_model=PredictResponse)
 def predict(req: PredictRequest):
