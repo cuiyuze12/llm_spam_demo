@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 import tiktoken
 import os
 import boto3
@@ -85,15 +86,13 @@ def classify_review(text, model, tokenizer, device, max_length=120, pad_token_id
 
     # Model inference
     with torch.no_grad():
-        logits = model(input_tensor.to(device))[:, -1, :]  # Logits of the last output token
-        
-        print("logits shape:", logits.shape)
-        print("logits:", logits)
-    
-    predicted_label = torch.argmax(logits, dim=-1).item()
-    
-    print("predicted_label: ", predicted_label)
+        logits = model(input_tensor)[:, -1, :]
+        probs = F.softmax(logits, dim=-1)
+        print("probs:", probs)
+        predicted_label = torch.argmax(probs, dim=-1).item()
+        confidence = f"{probs[0][predicted_label].item():.2f}"
+        print("confidence score:" + confidence)
 
-    # Return the classified result
-    return "spam" if predicted_label == 1 else "not spam"
+    label = "spam" if predicted_label == 1 else "not spam"
+    return label, confidence
 
