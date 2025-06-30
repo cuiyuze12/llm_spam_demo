@@ -62,7 +62,10 @@ def load_model_and_tokenizer():
     # Then load pretrained weights
     model.load_state_dict(torch.load("review_classifier.pth", map_location=device, weights_only=True))
     model.to(device)
-    model.eval();
+    model.eval()
+
+    # delete the pth file
+    finetuned_model_path.unlink()
     
     return model, tokenizer, device
 

@@ -1,0 +1,59 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Spam Review Classifier</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 40px;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+    }
+    .result {
+      margin-top: 20px;
+      font-size: 1.2em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Review Spam Classifier</h1>
+  <p>Enter review text:</p>
+  <textarea id="reviewInput" placeholder="Type your review here..."></textarea><br>
+  <button onclick="checkSpam()">Check Spam</button>
+
+  <div class="result" id="resultArea"></div>
+
+  <script>
+    async function checkSpam() {
+      const text = document.getElementById('reviewInput').value;
+      const resultArea = document.getElementById('resultArea');
+      resultArea.textContent = "Checking...";
+
+      try {
+        const response = await fetch('http://52.20.111.232:5000/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+
+        if (!response.ok) {
+          resultArea.textContent = "Error: " + response.statusText;
+          return;
+        }
+
+        const data = await response.json();
+        resultArea.innerHTML = `<b>Label:</b> ${data.label} <br><b>Confidence:</b> ${data.confidence.toFixed(4)}`;
+      } catch (err) {
+        resultArea.textContent = "Request failed: " + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
+
+
+
