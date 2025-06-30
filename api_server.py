@@ -29,6 +29,6 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.post("/predict", response_model=PredictResponse)
 def predict(req: PredictRequest):
-    predicted_label, confidence = classify_review(req.text, model, tokenizer, device)
-    return PredictResponse(label=predicted_label, confidence)
+    predicted_label, confidence_score = classify_review(req.text, model, tokenizer, device)
+    return PredictResponse(label=predicted_label, confidence=confidence_score)
 
