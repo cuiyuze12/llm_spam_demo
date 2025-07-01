@@ -89,9 +89,19 @@
 
   <section>
     <h2>2. モデルを再トレーニング</h2>
-    <button onclick="downloadTrainingData()">訓練データをダウンロード</button><br/>
+    <!-- Download Dataset Link -->
+    <div class="section">
+      <h2>学習データの準備</h2>
+      <p>
+        公開されている SMS Spam Collection データセット（英語）を利用します。
+        以下のリンクから zip ファイルをダウンロードできます。
+      </p>
+      <a class="button" href="https://archive.ics.uci.edu/static/public/228/sms+spam+collection.zip" target="_blank">
+        学習データをダウンロード
+      </a>
+    </div>
     <input type="file" id="dataUpload"/><br/>
-    <p>アップロードしない場合デフォルトの訓練データで学習する</p>
+    <p>アップロードしない場合上記の公開データ(SMS Spam Collection データセット)で学習する</p>
     <button onclick="train()">学習する</button>
     <div class="result-box" id="trainResult"></div>
   </section>
