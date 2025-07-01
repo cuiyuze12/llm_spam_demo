@@ -51,7 +51,7 @@ def predict(req: PredictRequest):
 async def train_model(file: UploadFile = File(...)):
     # 假设上传的是 CSV 格式：text,label（0/1）
     contents = await file.read()
-    acc = train_model(contents)
+    acc = run_training(contents)
 
     return JSONResponse(content={"message": f"訓練完了：正解率 = {acc:.2f}"})
 

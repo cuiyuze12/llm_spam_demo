@@ -1,7 +1,7 @@
 
 
 
-def train_model(contents) :
+def run_training(contents) :
     return 0.2
 '''
         texts, labels = [], []
