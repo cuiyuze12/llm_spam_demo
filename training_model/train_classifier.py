@@ -14,7 +14,7 @@ def run_training(file_obj) :
 
     balanced_df = create_balanced_dataset(df)
     print(balanced_df["Label"].value_counts())
-
+'''
     train_df, validation_df, test_df = random_split(balanced_df, 0.7, 0.1)
     train_df.to_csv("train.csv", index=None)
     validation_df.to_csv("validation.csv", index=None)
@@ -170,7 +170,7 @@ def run_training(file_obj) :
     print(f"Test accuracy: {test_accuracy*100:.2f}%")
 
     torch.save(model.state_dict(), "review_classifier.pth")
-
+'''
     return 2.3
 
 

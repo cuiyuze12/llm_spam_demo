@@ -8,3 +8,4 @@ boto3 == 1.38.46
 matplotlib==3.8.4
 python-multipart==0.0.9
 pandas==2.3.0
+tensorflow
