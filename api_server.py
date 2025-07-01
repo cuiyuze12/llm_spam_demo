@@ -9,7 +9,7 @@ import os
 import csv
 from inference import predict
 from finetuned_model.load_classifier import load_model_and_tokenizer, classify_review
-from training_model.train_classifier import train_model
+from training_model.train_classifier import run_training
 
 app = FastAPI()
 
