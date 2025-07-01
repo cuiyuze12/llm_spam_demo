@@ -14,7 +14,8 @@ def run_training(file_obj) :
 
     balanced_df = create_balanced_dataset(df)
     print(balanced_df["Label"].value_counts())
-'''
+#    return 2.3
+
     train_df, validation_df, test_df = random_split(balanced_df, 0.7, 0.1)
     train_df.to_csv("train.csv", index=None)
     validation_df.to_csv("validation.csv", index=None)
@@ -67,6 +68,7 @@ def run_training(file_obj) :
         num_workers=num_workers,
         drop_last=False,
     )
+
     CHOOSE_MODEL = "gpt2-small (124M)"
     INPUT_PROMPT = "Every effort moves"
 
@@ -125,7 +127,7 @@ def run_training(file_obj) :
     print(f"Training accuracy: {train_accuracy*100:.2f}%")
     print(f"Validation accuracy: {val_accuracy*100:.2f}%")
     print(f"Test accuracy: {test_accuracy*100:.2f}%")
-
+'''
     with torch.no_grad(): # Disable gradient tracking for efficiency because we are not training, yet
         train_loss = calc_loss_loader(train_loader, model, device, num_batches=5)
         val_loss = calc_loss_loader(val_loader, model, device, num_batches=5)
@@ -171,7 +173,7 @@ def run_training(file_obj) :
 
     torch.save(model.state_dict(), "review_classifier.pth")
 '''
-    return 2.3
+#    return 2.3
 
 
 def create_balanced_dataset(df):
@@ -183,6 +185,8 @@ def create_balanced_dataset(df):
 
     # Combine ham "subset" with "spam"
     balanced_df = pd.concat([ham_subset, df[df["Label"] == "spam"]])
+
+    balanced_df["Label"] = balanced_df["Label"].map({"ham": 0, "spam": 1})
 
     return balanced_df
 

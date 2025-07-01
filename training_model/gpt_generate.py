@@ -15,7 +15,7 @@ import torch
 from tqdm import tqdm
 
 # Import from local files
-from previous_chapters import GPTModel
+from finetuned_model.mygpt import GPTModel
 
 
 def text_to_token_ids(text, tokenizer):
