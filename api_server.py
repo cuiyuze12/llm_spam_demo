@@ -50,10 +50,9 @@ def predict(req: PredictRequest):
 @app.post("/train")
 async def train_model(file: UploadFile = File(...)):
     # 假设上传的是 CSV 格式：text,label（0/1）
-    contents = await file.read()
-    acc = run_training(contents)
+    acc = run_training(file.file)
 
-    return JSONResponse(content={"message": f"訓練完了：正解率 = {acc:.2f}"})
+    return JSONResponse(content={"message": f"訓練完了：正解率 = {acc}"})
 
 @app.get("/download-training-data")
 async def download_training_data():

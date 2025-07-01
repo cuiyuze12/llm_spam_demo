@@ -1,8 +1,10 @@
 
 
 
-def run_training(contents) :
-    return 0.2
+def run_training(file_obj) :
+    df = pd.read_csv(file_obj, sep="\t", header=None, names=["Label", "Text"])
+    print(df["Label"].value_counts())
+    return df["Label"].value_counts()[0]
 '''
         texts, labels = [], []
         lines = contents.decode("utf-8").splitlines()
