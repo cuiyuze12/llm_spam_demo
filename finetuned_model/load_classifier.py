@@ -66,7 +66,7 @@ def load_model_and_tokenizer():
     model.eval()
 
     # delete the pth file
-    finetuned_model_path.unlink()
+    # finetuned_model_path.unlink()
     
     return model, tokenizer, device
 
