@@ -2,8 +2,6 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-import random
-from inference import predict
 from finetuned_model.load_classifier import load_model_and_tokenizer, classify_review
 
 app = FastAPI()
