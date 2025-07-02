@@ -137,6 +137,8 @@ def run_training(file_obj) :
     print(f"Validation loss: {val_loss:.3f}")
     print(f"Test loss: {test_loss:.3f}")
 
+    return 9.8
+'''
     start_time = time.time()
 
     torch.manual_seed(123)
@@ -171,8 +173,8 @@ def run_training(file_obj) :
     print(f"Validation accuracy: {val_accuracy*100:.2f}%")
     print(f"Test accuracy: {test_accuracy*100:.2f}%")
 
-    torch.save(model.state_dict(), "review_classifier.pth")
-'''
+    torch.save(model.state_dict(), "review_classifier2.pth")
+    return 12.5
 #    return 2.3
 
 
