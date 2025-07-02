@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from finetuned_model.mygpt import GPTModel
 from training_model.gpt_generate import download_and_load_gpt2, load_weights_into_gpt
 import time
-
+import matplotlib.pyplot as plt
 
 def run_training(file_obj) :
     df = pd.read_csv(file_obj, sep="\t", header=None, names=["Label", "Text"])
@@ -127,7 +127,8 @@ def run_training(file_obj) :
     print(f"Training accuracy: {train_accuracy*100:.2f}%")
     print(f"Validation accuracy: {val_accuracy*100:.2f}%")
     print(f"Test accuracy: {test_accuracy*100:.2f}%")
-'''
+
+    '''
     with torch.no_grad(): # Disable gradient tracking for efficiency because we are not training, yet
         train_loss = calc_loss_loader(train_loader, model, device, num_batches=5)
         val_loss = calc_loss_loader(val_loader, model, device, num_batches=5)
@@ -138,7 +139,8 @@ def run_training(file_obj) :
     print(f"Test loss: {test_loss:.3f}")
 
     return 9.8
-'''
+    '''
+
     start_time = time.time()
 
     torch.manual_seed(123)
