@@ -1,10 +1,8 @@
 import torch
 import torch.nn.functional as F
 import tiktoken
-import os
-import boto3
 from mygpt import GPTModel
-
+from commons.myutils import download_model_from_s3
 
 BASE_CONFIG = {
     "vocab_size": 50257,     # Vocabulary size
@@ -23,15 +21,6 @@ model_configs = {
 CHOOSE_MODEL = "gpt2-small (124M)"
 
 BASE_CONFIG.update(model_configs[CHOOSE_MODEL])
-
-def download_model_from_s3(bucket_name, object_key, local_path):
-    if not os.path.exists(local_path):
-        print(f"Downloading model from s3://{bucket_name}/{object_key} ...")
-        s3 = boto3.client("s3")
-        s3.download_file(bucket_name, object_key, local_path)
-        print("Download complete.")
-    else:
-        print("Model file already exists. Skipping download.")
 
 def load_model_and_tokenizer():
     model_path = "review_classifier.pth"

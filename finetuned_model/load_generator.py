@@ -2,6 +2,7 @@ import torch
 import tiktoken
 from pathlib import Path
 from mygpt import GPTModel
+from commons.myutils import download_model_from_s3
 
 BASE_CONFIG = {
     "vocab_size": 50257,     # Vocabulary size
@@ -11,6 +12,13 @@ BASE_CONFIG = {
 }
 
 def load_generation_model():
+    model_path = "gpt2-medium355M-sft.pth"
+    download_model_from_s3(
+        bucket_name="llm-demo-models",
+        object_key="models/gpt2-medium355M-sft.pth",
+        local_path=model_path
+    )
+
     finetuned_model_path = Path("gpt2-medium355M-sft.pth")
     if not finetuned_model_path.exists():
         print(f"Could not find '{finetuned_model_path}'.\n"
