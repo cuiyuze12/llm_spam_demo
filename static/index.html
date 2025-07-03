@@ -27,14 +27,20 @@
   </a>
 
   <h2>2. スパム分類を試してみよう</h2>
-  <textarea id="reviewInput" placeholder="ここにメッセージを入力してください"></textarea><br/>
+  <textarea id="reviewInput" placeholder="ここにメッセージを英語で入力してください"></textarea><br/>
   <button onclick="checkSpam()">分類する</button>
   <div class="result" id="resultArea"></div>
 
   <hr/>
 
-  <h2>3. 指示に基づく回答生成</h2>
-  <textarea id="promptInput" placeholder="ここに指示を入力してください（例：東京について説明して）"></textarea><br/>
+  <h2>3. 指示に基づく回答生成モデル学習</h2>
+  <p>この分類モデルは Google Colab 上で事前に訓練されました。学習の詳細はこちら：</p>
+  <a href="https://colab.research.google.com/drive/1AuHT-n5hmgOjXYdXSzgLO6-3D46lEEu9?usp=sharing" target="_blank">
+    ▶ Google Colab Notebook を見る
+  </a>
+
+  <h2>4. 指示に基づく回答生成を試してみよう</h2>
+  <textarea id="promptInput" placeholder="ここに指示を英語で入力してください"></textarea><br/>
   <button onclick="generateResponse()">生成する</button>
   <div class="result" id="generationResultArea"></div>
 </section>
