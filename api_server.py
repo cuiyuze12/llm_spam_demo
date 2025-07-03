@@ -3,11 +3,15 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from finetuned_model.load_classifier import load_model_and_tokenizer, classify_review
+from finetuned_model.load_generator import load_generation_model, generate_text
 
 app = FastAPI()
 
 # 应用启动时加载一次模型和 tokenizer
 model, tokenizer, device = load_model_and_tokenizer()
+
+# 加载生成模型
+gen_model, gen_tokenizer = load_generation_model()
 
 # 请求体模型
 class PredictRequest(BaseModel):
@@ -17,6 +21,12 @@ class PredictRequest(BaseModel):
 class PredictResponse(BaseModel):
     label: str
     confidence: float
+
+class GenerateRequest(BaseModel):
+    prompt: str
+
+class GenerateResponse(BaseModel):
+    response: str
 
 @app.get("/")
 def read_index():
@@ -30,3 +40,7 @@ def predict(req: PredictRequest):
     predicted_label, confidence_score = classify_review(req.text, model, tokenizer, device)
     return PredictResponse(label=predicted_label, confidence=confidence_score)
 
+@app.post("/generate", response_model=GenerateResponse)
+def generate(req: GenerateRequest):
+    result = generate_text(req.prompt, gen_model, gen_tokenizer)
+    return GenerateResponse(response=result)
