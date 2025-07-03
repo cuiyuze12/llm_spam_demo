@@ -20,13 +20,17 @@
   </style>
 </head>
 <body>
-  <h1>Review Spam Classifier</h1>
-  <p>Enter review text:</p>
-  <textarea id="reviewInput" placeholder="Type your review here..."></textarea><br>
-  <button onclick="checkSpam()">Check Spam</button>
-
+<section>
+  <h2>1. スパム分類モデル学習</h2>
+  <p>この分類モデルは Google Colab 上で事前に訓練されました。学習の詳細はこちら：</p>
+  <a href="https://colab.research.google.com/drive/1hdvDvt_2Bdi6xo7g8RCQMG2IDc88mCGH?usp=sharing" target="_blank">
+    ▶ Google Colab Notebook を見る
+  </a>
+  <h2>2. スパム分類を試してみよう</h2>
+  <textarea id="reviewInput" placeholder="ここにメッセージを入力してください"></textarea><br/>
+  <button onclick="checkSpam()">分類する</button>
   <div class="result" id="resultArea"></div>
-
+</section>
   <script>
     async function checkSpam() {
       const text = document.getElementById('reviewInput').value;
