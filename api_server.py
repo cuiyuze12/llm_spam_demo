@@ -4,6 +4,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from finetuned_model.load_classifier import load_model_and_tokenizer, classify_review
 from finetuned_model.load_generator import load_generation_model, generate_text
+from rag.rag_retriever import real_rag_answer
 
 app = FastAPI()
 
@@ -52,7 +53,7 @@ class RAGRequest(BaseModel):
 @app.post("/api/rag_qa")
 def rag_qa(req: RAGRequest):
     # ↓ あなたのRAG推論ロジックに置き換えてください
-    answer = fake_rag_answer(req.query)
+    answer = real_rag_answer(req.query)
     return {"answer": answer}
 
 def fake_rag_answer(query: str) -> str:

@@ -5,3 +5,5 @@ uvicorn
 pydantic == 2.11.7
 numpy == 1.26.4
 boto3 == 1.38.46
+langchain==0.2.0
+langchain-aws==0.1.4
