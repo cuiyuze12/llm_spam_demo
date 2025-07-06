@@ -44,3 +44,35 @@ def predict(req: PredictRequest):
 def generate(req: GenerateRequest):
     result = generate_text(req.prompt, gen_model, gen_tokenizer)
     return GenerateResponse(response=result)
+
+# === RAG用 ===
+class RAGRequest(BaseModel):
+    query: str
+
+@app.post("/api/rag_qa")
+def rag_qa(req: RAGRequest):
+    # ↓ あなたのRAG推論ロジックに置き換えてください
+    answer = fake_rag_answer(req.query)
+    return {"answer": answer}
+
+def fake_rag_answer(query: str) -> str:
+    # 仮実装（あなたのretrieval+LLM生成に差し替えてOK）
+    if "Honda" in query:
+        return "私はHondaでプロジェクトリーダーとして、需給計画システムのソリューション選定を担当しています。"
+    return f"「{query}」に関する情報は、職務経歴ドキュメントに存在しない可能性があります。"
+
+# === Agent用 ===
+class AgentRequest(BaseModel):
+    message: str
+
+@app.post("/api/agent_chat")
+def agent_chat(req: AgentRequest):
+    # ↓ あなたのAgent実装に置き換えてください
+    result = fake_agent_response(req.message)
+    return {"result": result}
+
+def fake_agent_response(msg: str) -> str:
+    # 仮のエージェントロジック（LangChain AgentやBedrock Agentに置き換えてOK）
+    if "プロジェクト" in msg:
+        return "最近のプロジェクトでは、自作のLLMとRAGを組み合わせた履歴検索チャットボットを開発しました。"
+    return f"エージェントは「{msg}」に対応しました（これは仮の応答です）。"
