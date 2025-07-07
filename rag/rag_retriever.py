@@ -9,19 +9,11 @@ import boto3
 session = boto3.Session()
 kb_client = session.client("bedrock-runtime", region_name="us-east-1")
 
-# 用 from_client 构建 retriever
-retriever = AmazonKnowledgeBasesRetriever.from_client(
-    knowledge_base_id="3MQFVE1HLR",
-    client=kb_client,
-    retrieval_config={
-        "vectorSearchConfiguration": {"numberOfResults": 10}
-    },
-)
 # 初期化はグローバルに一度だけ行う（FastAPIの起動時）
-#retriever = AmazonKnowledgeBasesRetriever(
-#    knowledge_base_id="3MQFVE1HLR",
-#    retrieval_config={"vectorSearchConfiguration": {"numberOfResults": 10}},
-#)
+retriever = AmazonKnowledgeBasesRetriever(
+    knowledge_base_id="3MQFVE1HLR",
+    retrieval_config={"vectorSearchConfiguration": {"numberOfResults": 10}},
+)
 
 prompt = ChatPromptTemplate.from_template(
     "以下のcontextに基づいて、できるだけ丁寧に日本語で回答してください。\n\nContext:\n{context}\n\n質問:\n{question}"
