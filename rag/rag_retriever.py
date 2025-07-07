@@ -5,23 +5,31 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 import boto3
 
-# 初期化はグローバルに一度だけ行う（FastAPIの起動時）
-retriever = AmazonKnowledgeBasesRetriever(
+
+session = boto3.Session()
+kb_client = session.client("bedrock-runtime", region_name="us-east-1")
+
+# 用 from_client 构建 retriever
+retriever = AmazonKnowledgeBasesRetriever.from_client(
     knowledge_base_id="3MQFVE1HLR",
-    retrieval_config={"vectorSearchConfiguration": {"numberOfResults": 10}},
+    client=kb_client,
+    retrieval_config={
+        "vectorSearchConfiguration": {"numberOfResults": 10}
+    },
 )
+# 初期化はグローバルに一度だけ行う（FastAPIの起動時）
+#retriever = AmazonKnowledgeBasesRetriever(
+#    knowledge_base_id="3MQFVE1HLR",
+#    retrieval_config={"vectorSearchConfiguration": {"numberOfResults": 10}},
+#)
 
 prompt = ChatPromptTemplate.from_template(
     "以下のcontextに基づいて、できるだけ丁寧に日本語で回答してください。\n\nContext:\n{context}\n\n質問:\n{question}"
 )
 
-client = boto3.client(
-    service_name="bedrock-runtime",
-    region_name="us-east-1",
-)
 
 model = ChatBedrock(
-    client=client,
+    client=kb_client,
     model_id="anthropic.claude-3-sonnet-20240229-v1:0",
     model_kwargs={"max_tokens": 1000},
 )
