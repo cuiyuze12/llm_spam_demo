@@ -70,5 +70,9 @@ class AgentRequest(BaseModel):
 @app.post("/api/agent_chat")
 async def agent_chat(req: AgentRequest):
     prompt = req.message
-    answer = run_bedrock_agent(prompt)
-    return {"answer": answer}
+    result = run_bedrock_agent(prompt)
+    #return {"answer": answer}
+    return {
+        "answer": result["text"],
+        "category": result["category"]
+    }

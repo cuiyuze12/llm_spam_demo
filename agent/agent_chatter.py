@@ -18,15 +18,33 @@ def run_bedrock_agent(prompt: str) -> str:
             agentId=AGENT_ID,
             agentAliasId=AGENT_ALIAS_ID,
             sessionId=session_id,
-            enableTrace=False,
+            enableTrace=True,
         )
 
         # 逐步取得 response 内容
         event_stream = response["completion"]
-        result = ""
+        full_text = ""
+        classification = "b"  # デフォルトは一般知識
+
         for event in event_stream:
             if "chunk" in event:
-                result += event["chunk"]["bytes"].decode("utf-8")
-        return result
+                chunk_text = event["chunk"]["bytes"].decode("utf-8")
+                full_text += chunk_text
+
+                # 检查是否提到 action/function 或 knowledge base
+                if '"type":"ActionGroupInvocation"' in chunk_text:
+                    classification = "a"
+                elif '"type":"KnowledgeBaseQuery"' in chunk_text:
+                    classification = "c"
+
+        #return full_text
+        return {
+            "text": full_text,
+            "category": classification
+        }
     except Exception as e:
-        return f"エラーが発生しました: {str(e)}"
+        #return f"エラーが発生しました: {str(e)}"
+        return {
+            "text": f"エラーが発生しました: {str(e)}",
+            "category": "エラー"
+        }
