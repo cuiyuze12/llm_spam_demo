@@ -70,11 +70,5 @@ class AgentRequest(BaseModel):
 @app.post("/api/agent_chat")
 async def agent_chat(req: AgentRequest):
     prompt = req.message
-    response = run_bedrock_agent(prompt)
-    return {"response": response}
-
-def fake_agent_response(msg: str) -> str:
-    # 仮のエージェントロジック（LangChain AgentやBedrock Agentに置き換えてOK）
-    if "プロジェクト" in msg:
-        return "最近のプロジェクトでは、自作のLLMとRAGを組み合わせた履歴検索チャットボットを開発しました。"
-    return f"エージェントは「{msg}」に対応しました（これは仮の応答です）。"
+    answer = run_bedrock_agent(prompt)
+    return {"answer": answer}
