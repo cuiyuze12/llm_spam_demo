@@ -184,7 +184,7 @@
       body: JSON.stringify({message: input})
     });
     const data = await res.json();
-    document.getElementById("agent_output").innerText = data.result || "応答がありません";
+    document.getElementById("agent_output").innerText = data.answer || "応答がありません";
   }
 </script>
 </body>
