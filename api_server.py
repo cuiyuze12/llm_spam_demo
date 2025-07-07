@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from finetuned_model.load_classifier import load_model_and_tokenizer, classify_review
 from finetuned_model.load_generator import load_generation_model, generate_text
 from rag.rag_retriever import real_rag_answer
+from agent.agent_chatter import run_bedrock_agent
 
 app = FastAPI()
 
@@ -67,10 +68,11 @@ class AgentRequest(BaseModel):
     message: str
 
 @app.post("/api/agent_chat")
-def agent_chat(req: AgentRequest):
-    # ↓ あなたのAgent実装に置き換えてください
-    result = fake_agent_response(req.message)
-    return {"result": result}
+async def agent_chat(req: AgentRequest):
+    data = await req.json()
+    prompt = data.get("prompt", "")
+    response = run_bedrock_agent(prompt)
+    return {"response": response}
 
 def fake_agent_response(msg: str) -> str:
     # 仮のエージェントロジック（LangChain AgentやBedrock Agentに置き換えてOK）

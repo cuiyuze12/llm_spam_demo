@@ -13,7 +13,7 @@ kb_client = session.client("bedrock-runtime", region_name="us-east-1")
 retriever = AmazonKnowledgeBasesRetriever(
     knowledge_base_id="PFGPGVDWRJ",
     retrieval_config={"vectorSearchConfiguration": {"numberOfResults": 10}},
-    region_name="us-east-1"  # 👈 显式指定区域
+    region_name="us-east-1"  # 显式指定区域
 )
 
 prompt = ChatPromptTemplate.from_template(
