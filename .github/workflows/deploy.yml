@@ -3,8 +3,8 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - main  # 或者你的主分支名
-  workflow_dispatch:  # 👈 加上这个就能显示手动按钮
+      - main  # name of main branch
+  workflow_dispatch:  # display a button for running the task manually
 
 jobs:
   deploy:
@@ -23,16 +23,16 @@ jobs:
           source: "."
           target: "~/llm_spam_demo"
 
-#      - name: SSH into EC2 and restart service
-#        uses: appleboy/ssh-action@v0.1.10
-#        with:
-#          host: ${{ secrets.EC2_HOST }}
-#          username: ubuntu
-#          key: ${{ secrets.EC2_SSH_KEY }}
-#          script: |
-#            echo "🚀 Starting API server..."
-#            cd ~/llm_spam_demo
-#            source demovenv/bin/activate
-#            pkill uvicorn || true
-#           nohup demovenv/bin/uvicorn api_server:app --host 0.0.0.0 --port 5000 > server.log 2>&1 &
-#            echo "✅ API restarted successfully."
+      - name: SSH into EC2 and restart service
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "🚀 Starting API server..."
+            cd ~/llm_spam_demo
+            source demovenv/bin/activate
+            pkill uvicorn || true
+           nohup demovenv/bin/uvicorn api_server:app --host 0.0.0.0 --port 5000 > server.log 2>&1 &
+            echo "✅ API restarted successfully."
