@@ -8,6 +8,7 @@ on:
 
 jobs:
   deploy:
+    name: Deploy Job
     runs-on: ubuntu-latest
 
     steps:
@@ -34,5 +35,5 @@ jobs:
             cd ~/llm_spam_demo
             source demovenv/bin/activate
             pkill uvicorn || true
-           nohup demovenv/bin/uvicorn api_server:app --host 0.0.0.0 --port 5000 > server.log 2>&1 &
+            nohup demovenv/bin/uvicorn api_server:app --host 0.0.0.0 --port 5000 > server.log 2>&1 &
             echo "✅ API restarted successfully."
