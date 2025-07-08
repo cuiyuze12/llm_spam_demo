@@ -96,7 +96,7 @@
 </div>
 
 <div id="rag" class="content">
-  <h3>職務経歴RAG 質問応答</h3>
+  <h3>RAG 質問応答</h3>
   <input type="text" id="rag_input" placeholder="質問を入力してください">
   <button onclick="sendRAG()">検索</button>
   <div id="rag_output" class="output"></div>
@@ -184,8 +184,7 @@
       body: JSON.stringify({message: input})
     });
     const data = await res.json();
-    document.getElementById("agent_output").innerText =
-        `【分類: ${data.category}】\n\n${data.answer}` || "応答がありません";
+    document.getElementById("agent_output").innerText = data.answer || "応答がありません";
   }
 </script>
 </body>
