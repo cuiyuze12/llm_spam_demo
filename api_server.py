@@ -4,6 +4,8 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from finetuned_model.load_classifier import load_model_and_tokenizer, classify_review
 from finetuned_model.load_generator import load_generation_model, generate_text
+from rag.rag_retriever import real_rag_answer
+from agent.agent_chatter import run_bedrock_agent
 
 app = FastAPI()
 
@@ -44,3 +46,33 @@ def predict(req: PredictRequest):
 def generate(req: GenerateRequest):
     result = generate_text(req.prompt, gen_model, gen_tokenizer)
     return GenerateResponse(response=result)
+
+# === RAG用 ===
+class RAGRequest(BaseModel):
+    query: str
+
+@app.post("/api/rag_qa")
+def rag_qa(req: RAGRequest):
+    # ↓ あなたのRAG推論ロジックに置き換えてください
+    answer = real_rag_answer(req.query)
+    return {"answer": answer}
+
+def fake_rag_answer(query: str) -> str:
+    # 仮実装（あなたのretrieval+LLM生成に差し替えてOK）
+    if "Honda" in query:
+        return "私はHondaでプロジェクトリーダーとして、需給計画システムのソリューション選定を担当しています。"
+    return f"「{query}」に関する情報は、職務経歴ドキュメントに存在しない可能性があります。"
+
+# === Agent用 ===
+class AgentRequest(BaseModel):
+    message: str
+
+@app.post("/api/agent_chat")
+async def agent_chat(req: AgentRequest):
+    prompt = req.message
+    result = run_bedrock_agent(prompt)
+    #return {"answer": answer}
+    return {
+        "answer": result["text"],
+        "category": result["category"]
+    }

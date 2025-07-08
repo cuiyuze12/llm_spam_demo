@@ -1,55 +1,126 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Spam Review Classifier</title>
+  <title>AIマルチ機能デモ</title>
   <style>
     body {
       font-family: sans-serif;
       margin: 40px;
+      background-color: #f9f9f9;
     }
-    textarea {
-      width: 100%;
-      height: 100px;
+    h2 {
+      color: #333;
+      text-align: center;
     }
-    .result {
+    .tab {
+      display: inline-block;
+      padding: 10px 20px;
+      margin-right: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      cursor: pointer;
+      background-color: #eee;
+    }
+    .tab.active {
+      background-color: #007BFF;
+      color: white;
+    }
+    .content {
+      display: none;
+      margin-top: 30px;
+      padding: 20px;
+      background-color: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    .content.active {
+      display: block;
+    }
+    input[type="text"] {
+      width: 80%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    .output {
       margin-top: 20px;
-      font-size: 1.2em;
+      padding: 10px;
+      background-color: #f1f1f1;
+      border-left: 4px solid #007BFF;
     }
   </style>
 </head>
 <body>
-<section>
-  <h2>1. スパム分類モデル学習</h2>
+<h2>AIマルチ機能デモ</h2>
+
+<div id="tabs">
+  <div class="tab active" onclick="switchTab('llm')">自作LLM</div>
+  <div class="tab" onclick="switchTab('rag')">自作RAG</div>
+  <div class="tab" onclick="switchTab('agent')">自作AIエージェント</div>
+</div>
+
+<div id="llm" class="content active">
+  <h3>1. スパム分類モデル学習</h3>
   <p>この分類モデルは Google Colab 上で事前に訓練されました。学習の詳細はこちら：</p>
   <a href="https://colab.research.google.com/drive/1hdvDvt_2Bdi6xo7g8RCQMG2IDc88mCGH?usp=sharing" target="_blank">
     ▶ Google Colab Notebook を見る
   </a>
-
-  <h2>2. スパム分類を試してみよう</h2>
-  <textarea id="reviewInput" placeholder="ここにメッセージを英語で入力してください"></textarea><br/>
-  <button onclick="checkSpam()">分類する</button>
-  <div class="result" id="resultArea"></div>
+  <h3>2. スパム分類を試してみよう</h3>
+  <input type="text" id="spam_input" placeholder="ここにメッセージを英語で入力してください">
+  <button onclick="checkSpam()">分類</button>
+  <div id="spam_output" class="output"></div>
 
   <hr/>
-
-  <h2>3. 指示に基づく回答生成モデル学習</h2>
+  <h3>3. 指示に基づく回答生成モデル学習</h3>
   <p>この分類モデルは Google Colab 上で事前に訓練されました。学習の詳細はこちら：</p>
   <a href="https://colab.research.google.com/drive/1AuHT-n5hmgOjXYdXSzgLO6-3D46lEEu9?usp=sharing" target="_blank">
     ▶ Google Colab Notebook を見る
   </a>
+  <h3>4. 指示に基づく回答生成を試してみよう</h3>
+  <input type="text" id="generate_input" placeholder="ここに指示を英語で入力してください">
+  <button onclick="generateResponse()">分類</button>
+  <div id="generate_output" class="output"></div>
+</div>
 
-  <h2>4. 指示に基づく回答生成を試してみよう</h2>
-  <textarea id="promptInput" placeholder="ここに指示を英語で入力してください"></textarea><br/>
-  <button onclick="generateResponse()">生成する</button>
-  <div class="result" id="generationResultArea"></div>
-</section>
+<div id="rag" class="content">
+  <h3>RAG 質問応答</h3>
+  <input type="text" id="rag_input" placeholder="質問を入力してください">
+  <button onclick="sendRAG()">検索</button>
+  <div id="rag_output" class="output"></div>
+</div>
+
+<div id="agent" class="content">
+  <h3>AIエージェント チャット</h3>
+  <input type="text" id="agent_input" placeholder="指示を入力してください">
+  <button onclick="sendAgent()">実行</button>
+  <div id="agent_output" class="output"></div>
+</div>
 
 <script>
+  function switchTab(tabName) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+    document.querySelector(`.tab[onclick*="${tabName}"]`).classList.add('active');
+    document.getElementById(tabName).classList.add('active');
+  }
+
   async function checkSpam() {
-    const text = document.getElementById('reviewInput').value;
-    const resultArea = document.getElementById('resultArea');
-    resultArea.textContent = "Checking...";
+    const text = document.getElementById('spam_input').value;
+    const spamResultArea = document.getElementById('spam_output');
+    spamResultArea.textContent = "Checking...";
 
     try {
       const response = await fetch('http://52.20.111.232:5000/predict', {
@@ -59,20 +130,20 @@
       });
 
       if (!response.ok) {
-        resultArea.textContent = "Error: " + response.statusText;
+        spamResultArea.textContent = "Error: " + response.statusText;
         return;
       }
 
       const data = await response.json();
-      resultArea.innerHTML = `<b>Label:</b> ${data.label} <br><b>Confidence:</b> ${data.confidence.toFixed(4)}`;
+      spamResultArea.innerHTML = `<b>Label:</b> ${data.label} <br><b>Confidence:</b> ${data.confidence.toFixed(4)}`;
     } catch (err) {
-      resultArea.textContent = "Request failed: " + err.message;
+      spamResultArea.textContent = "Request failed: " + err.message;
     }
   }
 
   async function generateResponse() {
-    const prompt = document.getElementById('promptInput').value;
-    const resultArea = document.getElementById('generationResultArea');
+    const prompt = document.getElementById('generate_input').value;
+    const resultArea = document.getElementById('generate_output');
     resultArea.textContent = "生成中...";
 
     try {
@@ -92,6 +163,28 @@
     } catch (err) {
       resultArea.textContent = "Request failed: " + err.message;
     }
+  }
+
+  async function sendRAG() {
+    const input = document.getElementById("rag_input").value;
+    const res = await fetch("/api/rag_qa", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({query: input})
+    });
+    const data = await res.json();
+    document.getElementById("rag_output").innerText = data.answer || "応答がありません";
+  }
+
+  async function sendAgent() {
+    const input = document.getElementById("agent_input").value;
+    const res = await fetch("/api/agent_chat", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({message: input})
+    });
+    const data = await res.json();
+    document.getElementById("agent_output").innerText = data.answer || "応答がありません";
   }
 </script>
 </body>
