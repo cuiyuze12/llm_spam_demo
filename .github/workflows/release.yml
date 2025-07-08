@@ -1,0 +1,26 @@
+name: Release source code to EC2
+# But the service is not kicked to start
+
+on:
+  push:
+    branches:
+      - main  # name of main branch
+  workflow_dispatch:  # display a button for running the task manually
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Copy files to EC2
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "."
+          target: "~/llm_spam_demo"
+
