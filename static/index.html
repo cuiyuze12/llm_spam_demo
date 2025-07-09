@@ -66,6 +66,11 @@
 <body>
 <h2>AIマルチ機能デモ</h2>
 
+<section style="max-width: 900px; margin: 0 auto 30px auto; padding: 10px 20px; background-color: #fff; border-left: 4px solid #007BFF;">
+  <p>このデモをご覧頂き、誠にありがとうございます。</p>
+  <p>本デモでは、自作の軽量LLM、RAG、AIエージェントを組み合わせた多機能AIアプリを体験できます。</p>
+</section>
+
 <div id="tabs">
   <div class="tab active" onclick="switchTab('llm')">自作LLM</div>
   <div class="tab" onclick="switchTab('rag')">自作RAG</div>
@@ -73,6 +78,12 @@
 </div>
 
 <div id="llm" class="content active">
+  <p>このセクションでは、自作の軽量LLMによる2つの機能をご体験頂けます。</p>
+  <ul>
+    <li><b>迷惑メール分類:</b> scikit-learnで学習した英語スパム分類器。</li>
+    <li><b>LLMチャット:</b> GPT-2ベースモデルに日本語命令文をファインチューニングし、回答生成を行います。</li>
+  </ul>
+
   <h3>1. スパム分類モデル学習</h3>
   <p>この分類モデルは Google Colab 上で事前に訓練されました。学習の詳細はこちら：</p>
   <a href="https://colab.research.google.com/drive/1hdvDvt_2Bdi6xo7g8RCQMG2IDc88mCGH?usp=sharing" target="_blank">
@@ -96,6 +107,12 @@
 </div>
 
 <div id="rag" class="content">
+  <p>このセクションでは、自作のRAG（Retrieval-Augmented Generation）機能をご体験頂けます。</p>
+  <ul>
+    <li>Amazon BedrockのKnowledge Baseと統合し、ナレッジベースに登録された社内資料を検索して回答を生成。</li>
+    <li>関連情報が存在しない場合、「ナレッジベースに該当情報がありません」と通知します。</li>
+  </ul>
+
   <h3>RAG 質問応答</h3>
   <input type="text" id="rag_input" placeholder="質問を入力してください">
   <button onclick="sendRAG()">検索</button>
@@ -103,6 +120,16 @@
 </div>
 
 <div id="agent" class="content">
+  <p>このセクションでは、Bedrock AgentによるAIエージェントとのチャット機能をご体験頂けます。</p>
+  <ul>
+    <li>ユーザーの質問内容を以下3カテゴリに分類して処理します：</li>
+    <ul>
+      <li><b>a)</b> AWSの最新情報 → 外部APIから取得</li>
+      <li><b>b)</b> 一般知識 → Claude 3 による回答</li>
+      <li><b>c)</b> 社内ナレッジ → Knowledge Baseから回答</li>
+    </ul>
+    <li>Bedrock Agentのfunction calling機能を活用した本格的なマルチツール統合構成です。</li>
+  </ul>
   <h3>AIエージェント チャット</h3>
   <input type="text" id="agent_input" placeholder="指示を入力してください">
   <button onclick="sendAgent()">実行</button>
