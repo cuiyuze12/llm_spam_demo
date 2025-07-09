@@ -37,12 +37,12 @@ def read_index():
 # 挂载整个 static 目录（可选：用于支持 css, js）
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-@app.post("/predict", response_model=PredictResponse)
+@app.post("/api/predict", response_model=PredictResponse)
 def predict(req: PredictRequest):
     predicted_label, confidence_score = classify_review(req.text, model, tokenizer, device)
     return PredictResponse(label=predicted_label, confidence=confidence_score)
 
-@app.post("/generate", response_model=GenerateResponse)
+@app.post("/api/generate", response_model=GenerateResponse)
 def generate(req: GenerateRequest):
     result = generate_text(req.prompt, gen_model, gen_tokenizer)
     return GenerateResponse(response=result)

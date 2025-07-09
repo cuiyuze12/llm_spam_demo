@@ -78,11 +78,12 @@
 </div>
 
 <div id="llm" class="content active">
-  <p>このセクションでは、自作の軽量LLMによる2つの機能をご体験頂けます。</p>
+  <p>このセクションでは、GPT-2 ベースの自作軽量LLMを活用した2つの機能をご体験いただけます。</p>
   <ul>
-    <li><b>迷惑メール分類:</b> scikit-learnで学習した英語スパム分類器。</li>
-    <li><b>LLMチャット:</b> GPT-2ベースモデルに日本語命令文をファインチューニングし、回答生成を行います。</li>
+    <li><b>迷惑メール分類：</b>GPT-2 モデルに対して「分類タスク」のファインチューニングを施し、英語メッセージをスパム／非スパムに分類します。</li>
+    <li><b>指示に基づく回答生成：</b>同じく GPT-2 モデルに対して「命令文応答タスク」のファインチューニングを行い、英語での対話指示に応じた回答を生成します（日本語は未対応）</li>
   </ul>
+  <p>いずれのモデルも Google Colab 上で学習を行い、現在は EC2 上の Web アプリからリアルタイムで推論可能です。</p>
 
   <h3>1. スパム分類モデル学習</h3>
   <p>この分類モデルは Google Colab 上で事前に訓練されました。学習の詳細はこちら：</p>
@@ -150,7 +151,7 @@
     spamResultArea.textContent = "Checking...";
 
     try {
-      const response = await fetch('http://52.20.111.232:5000/predict', {
+      const response = await fetch('/api/predict', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text })
@@ -174,7 +175,7 @@
     resultArea.textContent = "生成中...";
 
     try {
-      const response = await fetch('http://52.20.111.232:5000/generate', {
+      const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt })
