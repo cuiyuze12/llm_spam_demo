@@ -8,6 +8,7 @@ from rag.rag_retriever import real_rag_answer
 from agent.agent_chatter import run_bedrock_agent
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
+import time
 
 app = FastAPI()
 

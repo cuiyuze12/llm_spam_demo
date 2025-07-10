@@ -186,7 +186,7 @@ The car is very fast.</pre>
   async function checkSpam() {
     const text = document.getElementById('spam_input').value;
     const spamResultArea = document.getElementById('spam_output');
-    spamResultArea.textContent = "Checking...";
+    spamResultArea.textContent = "分類中...";
 
     try {
       const response = await fetch('/api/predict', {
@@ -210,7 +210,7 @@ The car is very fast.</pre>
   async function generateResponse() {
     const prompt = document.getElementById('generate_input').value;
     const resultArea = document.getElementById('generate_output');
-    resultArea.textContent = "生成中...";
+    resultArea.textContent = "生成中(数秒かかりますので少々お待ちください)...";
 
     try {
       const response = await fetch('/api/generate', {
