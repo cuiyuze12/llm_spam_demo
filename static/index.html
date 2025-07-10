@@ -146,29 +146,55 @@ The car is very fast.</pre>
 </div>
 
 <div id="rag" class="content">
-  <p>このセクションでは、自作のRAG（Retrieval-Augmented Generation）機能をご体験頂けます。</p>
-  <ul>
-    <li>Amazon BedrockのKnowledge Baseと統合し、ナレッジベースに登録された社内資料を検索して回答を生成。</li>
-    <li>関連情報が存在しない場合、「ナレッジベースに該当情報がありません」と通知します。</li>
-  </ul>
-
   <h3>RAG 質問応答</h3>
+  <p>
+    このセクションでは、自作のRAG（Retrieval-Augmented Generation）機能をご体験頂けます。<br/>
+    Amazon BedrockのKnowledge Base機能を活用し、社内資料を検索・要約して日本語での回答を生成します。
+  </p>
+  <p>
+    現在登録されているナレッジベースには、株式会社日本取引所グループ（JPX）の2023年度第2四半期・第3四半期の決算説明資料（PDF）が含まれています。
+    これらの資料には、売上・営業利益の変動要因、取引所別の業績、投資家向けの施策、費用構造の分析などが含まれています。
+  </p>
+  <details>
+    <summary><b>📌 質問例を表示</b></summary>
+    <ul>
+      <li>2023年度第3四半期の売上が増えた理由は何ですか？</li>
+      <li>JPXの2023年3Qの決算について教えてください。</li>
+      <li>決算資料の中で「トレーディング参加者数の推移」について説明されていますか？</li>
+      <li>2023年第2四半期と第3四半期の比較で、費用の増減要因は何ですか？</li>
+      <li>JPXは中期的にどのようなIT投資を計画していますか？</li>
+    </ul>
+  </details>
   <input type="text" id="rag_input" placeholder="質問を入力してください">
   <button onclick="sendRAG()">検索</button>
   <div id="rag_output" class="output"></div>
 </div>
 
 <div id="agent" class="content">
-  <p>このセクションでは、Bedrock AgentによるAIエージェントとのチャット機能をご体験頂けます。</p>
+  <p>このセクションでは、Bedrock AgentによるAIエージェントとのチャット機能をご体験頂けます。
+  本エージェントは、 ReAct（Reasoning + Acting）手法に基づき、ユーザーの指示内容を理解・分類した上で、適切な情報源を選定し、自動でタスクを実行・応答する構成となっています。</p>
   <ul>
-    <li>ユーザーの質問内容を以下3カテゴリに分類して処理します：</li>
+    <li>ユーザーの質問内容を以下の3カテゴリに分類し、それぞれ適切な方法で回答を生成します：</li>
     <ul>
-      <li><b>a)</b> AWSの最新情報 → 外部APIから取得</li>
-      <li><b>b)</b> 一般知識 → Claude 3 による回答</li>
-      <li><b>c)</b> 社内ナレッジ → Knowledge Baseから回答</li>
+      <li>
+        <b>a) AWSの最新情報に関する質問：</b><br/>
+        → Lambda関数を呼び出して、<a href="https://aws.amazon.com/jp/blogs/aws/" target="_blank">AWS公式ブログ</a>の最新情報を取得し、要約して回答します。<br/>
+        例）<i>AWSの最新情報について教えてください。</i>
+      </li>
+      <li>
+        <b>b) 日本取引所グループ（JPX）の決算に関する質問：</b><br/>
+        → RAG機能（社内ナレッジベース）を使用して関連資料から検索・回答します。<br/>
+        例）<i>JPXの第3四半期の売上が増えた理由は？</i>
+      </li>
+      <li>
+        <b>c) それ以外の一般的な質問：</b><br/>
+        → Claude 3 モデルが持つ知識をもとに直接回答します。<br/>
+        例）<i>世界で一番歴史が長い国を教えてください。</i>
+      </li>
     </ul>
-    <li>Bedrock Agentのfunction calling機能を活用した本格的なマルチツール統合構成です。</li>
+    <li></li>
   </ul>
+
   <h3>AIエージェント チャット</h3>
   <input type="text" id="agent_input" placeholder="指示を入力してください">
   <button onclick="sendAgent()">実行</button>
