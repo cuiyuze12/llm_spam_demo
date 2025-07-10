@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -6,8 +6,44 @@ from finetuned_model.load_classifier import load_model_and_tokenizer, classify_r
 from finetuned_model.load_generator import load_generation_model, generate_text
 from rag.rag_retriever import real_rag_answer
 from agent.agent_chatter import run_bedrock_agent
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 
 app = FastAPI()
+
+# ========== 配置 ==========
+RATE_LIMIT = 60  # 每个 IP 每分钟最多请求次数
+ALLOWED_PATH_PREFIX = "/api"
+
+# ========== 内部存储 ==========
+ip_access_log = {}  # 存储 IP 的访问时间戳
+
+
+class RateLimitAndPathFilterMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        client_ip = request.client.host
+        path = request.url.path
+
+        # ❌ 不以 /api 开头的路径禁止访问
+        if not path.startswith(ALLOWED_PATH_PREFIX):
+            return Response(status_code=403, content="Forbidden: Only /api/* paths are allowed.")
+
+        # ✅ 限速逻辑
+        now = time.time()
+        timestamps = ip_access_log.get(client_ip, [])
+        # 保留最近1分钟的请求时间
+        timestamps = [t for t in timestamps if now - t < 60]
+
+        if len(timestamps) >= RATE_LIMIT:
+            return Response(status_code=429, content="Too Many Requests: Rate limit exceeded.")
+
+        timestamps.append(now)
+        ip_access_log[client_ip] = timestamps
+
+        return await call_next(request)
+
+# 添加中间件
+app.add_middleware(RateLimitAndPathFilterMiddleware)
 
 # 应用启动时加载一次模型和 tokenizer
 model, tokenizer, device = load_model_and_tokenizer()
