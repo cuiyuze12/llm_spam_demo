@@ -18,25 +18,30 @@ ALLOWED_PATH_PREFIX = "/api"
 # ========== 内部存储 ==========
 ip_access_log = {}  # 存储 IP 的访问时间戳
 
+ALLOWED_PATH_PREFIXES = ["/api", "/", "/index.html", "/favicon.ico", "/static"]  # 保留主页、静态文件等
+
+BLOCKED_PATTERNS = [".php", ".aspx", "/wp-", "/admin", "/config", "/log", "/radio"]
 
 class RateLimitAndPathFilterMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         client_ip = request.client.host
         path = request.url.path
 
-        # ❌ 不以 /api 开头的路径禁止访问
-        if not path.startswith(ALLOWED_PATH_PREFIX):
-            return Response(status_code=403, content="Forbidden: Only /api/* paths are allowed.")
+        # ❌ 拒绝明显的攻击路径
+        for pattern in BLOCKED_PATTERNS:
+            if pattern in path:
+                return Response(status_code=403, content=f"Forbidden: Suspicious path {path}")
 
-        # ✅ 限速逻辑
+        # ✅ 允许的路径前缀
+        if not any(path.startswith(p) for p in ALLOWED_PATH_PREFIXES):
+            return Response(status_code=403, content="Forbidden: Path not allowed.")
+
+        # Rate Limit 限制
         now = time.time()
         timestamps = ip_access_log.get(client_ip, [])
-        # 保留最近1分钟的请求时间
         timestamps = [t for t in timestamps if now - t < 60]
-
         if len(timestamps) >= RATE_LIMIT:
             return Response(status_code=429, content="Too Many Requests: Rate limit exceeded.")
-
         timestamps.append(now)
         ip_access_log[client_ip] = timestamps
 
