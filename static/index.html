@@ -93,7 +93,7 @@
   </a>
   <h3>2. スパム分類を試してみよう</h3>
   <details style="margin-bottom: 15px;">
-    <summary>分類の例を表示する</summary>
+    <summary><b>📌 分類の例を表示（クリックで展開）</b></summary>
     <div style="margin-top: 10px;">
       <b>🟢 非スパム例:</b>
       <ul>
@@ -123,7 +123,7 @@
   </a>
   <h3>4. 指示に基づく回答生成を試してみよう</h3>
   <details>
-    <summary>💡 指示入力フォーマットと例（クリックで展開）</summary>
+    <summary><b>📌 指示入力フォーマットと例（クリックで展開）</b></summary>
     <p>以下の形式で英語の指示を入力してください：</p>
     <pre style="background-color: #f4f4f4; padding: 10px; border-radius: 5px;">
 Below is an instruction that describes a task. Write a response that appropriately completes the request.
@@ -156,7 +156,7 @@ The car is very fast.</pre>
     これらの資料には、売上・営業利益の変動要因、取引所別の業績、投資家向けの施策、費用構造の分析などが含まれています。
   </p>
   <details>
-    <summary><b>📌 質問例を表示</b></summary>
+    <summary><b>📌 質問例を表示（クリックで展開）</b></summary>
     <ul>
       <li>2023年度第3四半期の売上が増えた理由は何ですか？</li>
       <li>JPXの2023年3Qの決算について教えてください。</li>
@@ -171,28 +171,38 @@ The car is very fast.</pre>
 </div>
 
 <div id="agent" class="content">
-  <p>このセクションでは、Bedrock AgentによるAIエージェントとのチャット機能をご体験頂けます。
-  本エージェントは、 ReAct（Reasoning + Acting）手法に基づき、ユーザーの指示内容を理解・分類した上で、適切な情報源を選定し、自動でタスクを実行・応答する構成となっています。</p>
+  <p>
+    このセクションでは、Bedrock Agent による AI エージェントとのチャット機能をご体験いただけます。<br/>
+    本エージェントは、ReAct（Reasoning + Acting）手法に基づき、ユーザーの指示内容を理解・分類した上で、適切な情報源を選定し、自動でタスクを実行・応答する構成となっています。
+  </p>
+
   <ul>
-    <li>ユーザーの質問内容を以下の3カテゴリに分類し、それぞれ適切な方法で回答を生成します：</li>
+    <li>ユーザーの質問内容を以下の 3 カテゴリに分類し、それぞれ適切な方法で回答を生成します：</li>
     <ul>
       <li>
         <b>a) AWSの最新情報に関する質問：</b><br/>
-        → Lambda関数を呼び出して、<a href="https://aws.amazon.com/jp/blogs/aws/" target="_blank">AWS公式ブログ</a>の最新情報を取得し、要約して回答します。<br/>
-        例）<i>AWSの最新情報について教えてください。</i>
+        → Lambda 関数を呼び出して、<a href="https://aws.amazon.com/jp/blogs/aws/" target="_blank">AWS公式ブログ</a> の最新情報を取得し、要約して回答します。
       </li>
       <li>
         <b>b) 日本取引所グループ（JPX）の決算に関する質問：</b><br/>
-        → RAG機能（社内ナレッジベース）を使用して関連資料から検索・回答します。<br/>
-        例）<i>JPXの第3四半期の売上が増えた理由は？</i>
+        → RAG 機能（社内ナレッジベース）を使用して関連資料から検索・回答します。
       </li>
       <li>
         <b>c) それ以外の一般的な質問：</b><br/>
-        → Claude 3 モデルが持つ知識をもとに直接回答します。<br/>
-        例）<i>世界で一番歴史が長い国を教えてください。</i>
+        → Claude 3 モデルが持つ知識をもとに直接回答します。
       </li>
     </ul>
-    <li></li>
+
+    <li>
+      <details>
+        <summary><b>📌 質問例を表示（クリックで展開）</b></summary>
+        <ul>
+          <li><b>a)</b> AWSの最新情報について教えてください。</li>
+          <li><b>b)</b> JPXの第3四半期の売上が増えた理由は？</li>
+          <li><b>c)</b> 世界で一番歴史が長い国を教えてください。</li>
+        </ul>
+      </details>
+    </li>
   </ul>
 
   <h3>AIエージェント チャット</h3>
@@ -258,6 +268,8 @@ The car is very fast.</pre>
   }
 
   async function sendRAG() {
+    const resultArea = document.getElementById('rag_output');
+    resultArea.textContent = "検索中(数秒かかりますので少々お待ちください)...";
     const input = document.getElementById("rag_input").value;
     const res = await fetch("/api/rag_qa", {
       method: "POST",
@@ -269,6 +281,8 @@ The car is very fast.</pre>
   }
 
   async function sendAgent() {
+    const resultArea = document.getElementById('agent_output');
+    resultArea.textContent = "生成中(数秒かかりますので少々お待ちください)...";
     const input = document.getElementById("agent_input").value;
     const res = await fetch("/api/agent_chat", {
       method: "POST",
