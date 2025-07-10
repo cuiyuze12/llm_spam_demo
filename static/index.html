@@ -111,6 +111,7 @@
   </details>
 
   <input type="text" id="spam_input" placeholder="ここにメッセージを英語で入力してください">
+  <br>
   <button onclick="checkSpam()">分類</button>
   <div id="spam_output" class="output"></div>
 
@@ -122,16 +123,23 @@
   </a>
   <h3>4. 指示に基づく回答生成を試してみよう</h3>
   <details>
-    <summary>💡 指示の例を表示（クリックで展開）</summary>
+    <summary>💡 指示入力フォーマットと例（クリックで展開）</summary>
+    <p>以下の形式で英語の指示を入力してください：</p>
+    <pre style="background-color: #f4f4f4; padding: 10px; border-radius: 5px;">
+Below is an instruction that describes a task. Write a response that appropriately completes the request.
+
+### Instruction:
+Rewrite the sentence using a simile.
+
+### Input:
+The car is very fast.</pre>
+    <p>その他の例：</p>
     <ul>
-      <li>xxx</li>
-      <li>Summarize the key points of the American Civil War.</li>
-      <li>Write a polite email requesting a meeting next week.</li>
-      <li>Explain how a neural network works in simple terms.</li>
-      <li>xx</li>
+      <li><code>### Instruction:</code> What type of cloud is typically associated with thunderstorms? </li>
+      <li><code>### Instruction:</code> Rewrite the following sentence using passive voice. <br><code>### Input:</code> The team achieved great results.</li>
     </ul>
   </details>
-  <textarea id="generate_input" placeholder="ここに指示を英語で入力してください" rows="5" style="width: 80%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px;"></textarea>
+  <textarea id="generate_input" placeholder="ここに指示を英語で入力してください" rows="8" style="width: 80%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px;"></textarea>
   <br>
   <button onclick="generateResponse()">送信</button>
   <div id="generate_output" class="output"></div>
