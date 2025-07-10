@@ -83,14 +83,33 @@
     <li><b>迷惑メール分類：</b>GPT-2 モデルに対して「分類タスク」のファインチューニングを施し、英語メッセージをスパム／非スパムに分類します。</li>
     <li><b>指示に基づく回答生成：</b>同じく GPT-2 モデルに対して「命令文応答タスク」のファインチューニングを行い、英語での対話指示に応じた回答を生成します（日本語は未対応）</li>
   </ul>
-  <p>いずれのモデルも Google Colab 上で学習を行い、現在は EC2 上の Web アプリからリアルタイムで推論可能です。</p>
-
+  <p>いずれのモデルも Google Colab 上で学習を行い、現在は EC2 上の Web アプリからリアルタイムで推論可能です。<br>
+    なお、本デモでは計算リソースの制約を考慮し、軽量な GPT-2 モデルを採用しているため、<strong>対応言語は英語のみに限定しています</strong>。
+  </p>
   <h3>1. スパム分類モデル学習</h3>
   <p>この分類モデルは Google Colab 上で事前に訓練されました。学習の詳細はこちら：</p>
   <a href="https://colab.research.google.com/drive/1hdvDvt_2Bdi6xo7g8RCQMG2IDc88mCGH?usp=sharing" target="_blank">
     ▶ Google Colab Notebook を見る
   </a>
   <h3>2. スパム分類を試してみよう</h3>
+  <details style="margin-bottom: 15px;">
+    <summary>分類の例を表示する</summary>
+    <div style="margin-top: 10px;">
+      <b>🟢 非スパム例:</b>
+      <ul>
+        <li>Let’s meet at 3 PM for the project discussion.</li>
+        <li>Your Amazon package has been shipped.</li>
+        <li>Can you send me the updated file?</li>
+      </ul>
+      <b>🔴 スパム例:</b>
+      <ul>
+        <li>This is a limited time offer! Click now to win a free iPhone!</li>
+        <li>You are a winner you have been specially  selected to receive $1000 cash or a $2000 award.</li>
+        <li>Call Free 0800 1956669 or text back help</li>
+      </ul>
+    </div>
+  </details>
+
   <input type="text" id="spam_input" placeholder="ここにメッセージを英語で入力してください">
   <button onclick="checkSpam()">分類</button>
   <div id="spam_output" class="output"></div>
@@ -102,8 +121,19 @@
     ▶ Google Colab Notebook を見る
   </a>
   <h3>4. 指示に基づく回答生成を試してみよう</h3>
-  <input type="text" id="generate_input" placeholder="ここに指示を英語で入力してください">
-  <button onclick="generateResponse()">分類</button>
+  <details>
+    <summary>💡 指示の例を表示（クリックで展開）</summary>
+    <ul>
+      <li>xxx</li>
+      <li>Summarize the key points of the American Civil War.</li>
+      <li>Write a polite email requesting a meeting next week.</li>
+      <li>Explain how a neural network works in simple terms.</li>
+      <li>xx</li>
+    </ul>
+  </details>
+  <textarea id="generate_input" placeholder="ここに指示を英語で入力してください" rows="5" style="width: 80%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px;"></textarea>
+  <br>
+  <button onclick="generateResponse()">送信</button>
   <div id="generate_output" class="output"></div>
 </div>
 
@@ -163,7 +193,7 @@
       }
 
       const data = await response.json();
-      spamResultArea.innerHTML = `<b>Label:</b> ${data.label} <br><b>Confidence:</b> ${data.confidence.toFixed(4)}`;
+      spamResultArea.innerHTML = `<b>分類:</b> ${data.label} <br><b>信頼度:</b> ${data.confidence.toFixed(4)}`;
     } catch (err) {
       spamResultArea.textContent = "Request failed: " + err.message;
     }
