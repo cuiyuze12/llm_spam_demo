@@ -160,7 +160,6 @@ The car is very fast.</pre>
     <ul>
       <li>2023年度第3四半期の売上が増えた理由は何ですか？</li>
       <li>JPXの2023年3Qの決算について教えてください。</li>
-      <li>決算資料の中で「トレーディング参加者数の推移」について説明されていますか？</li>
       <li>2023年第2四半期と第3四半期の比較で、費用の増減要因は何ですか？</li>
       <li>JPXは中期的にどのようなIT投資を計画していますか？</li>
     </ul>
@@ -269,7 +268,7 @@ The car is very fast.</pre>
 
   async function sendRAG() {
     const resultArea = document.getElementById('rag_output');
-    resultArea.textContent = "検索中(数秒かかりますので少々お待ちください)...";
+    resultArea.textContent = "生成中(数秒かかりますので少々お待ちください)...";
     const input = document.getElementById("rag_input").value;
     const res = await fetch("/api/rag_qa", {
       method: "POST",
