@@ -70,7 +70,7 @@ uvicorn api_server:app --host 0.0.0.0 --port 5000
 ```
 
 アプリURL：
-- [https://wonderlusia.site](https://wonderlusia.site) （公開用）
+- [https://wonderlusia.site](https://wonderlusia.site) 
 
 ---
 
@@ -104,7 +104,7 @@ uvicorn api_server:app --host 0.0.0.0 --port 5000
 
 このリポジトリは Git Flow に基づいて管理されています。  
 GitFlowのブランチ戦略としては、`main` / `develop` / `feature/*` / `release/*` / `hotfix/*` の構成を採用することですが、
-本プロジェクトは小規模のため`main` / `feature/*` の構成担っています。
+本プロジェクトは小規模のため`main` / `feature/*` の構成になっています。
 
 🔗 関連ブログ投稿（執筆者：崔 玉澤）  
 👉 [Git Flowの基本運用と注意点 - KINTO Technologies Tech Blog](https://blog.kinto-technologies.com/posts/2022-12-03-gitflow/)
