@@ -63,7 +63,7 @@
     }
 
     details summary {
-      list-style: none; /* ← これが重要 */
+      list-style: none;
       cursor: pointer;
       padding: 8px 12px;
       font-weight: bold;
@@ -71,7 +71,7 @@
       background-color: transparent;
       border-radius: 4px;
       transition: background-color 0.2s;
-      display: flex;
+      display: inline-flex; /* ← ここ重要 */
       align-items: center;
     }
 
@@ -81,13 +81,13 @@
 
     details[open] summary::after {
       content: "▲";
-      margin-left: auto;
+      margin-left: 8px;  /* ← ここ変更 */
       color: #444;
     }
 
     details:not([open]) summary::after {
       content: "▼";
-      margin-left: auto;
+      margin-left: 8px;  /* ← ここ変更 */
       color: #444;
     }
 
