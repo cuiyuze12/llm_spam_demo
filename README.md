@@ -78,17 +78,17 @@ uvicorn api_server:app --host 0.0.0.0 --port 5000
 ## 🖼️ 画面イメージ
 
 ### ▶️ 自作LLM（スパム分類 & 応答生成）
-![LLMデモ画面](pics/FireShot1.png)
+![LLMデモ画面](pics/img1.png)
 
 ---
 
 ### ▶️ 自作RAG（社内資料からの日本語質問応答）
-![RAGデモ画面](pics/FireShot2.png)
+![RAGデモ画面](pics/img2.png)
 
 ---
 
 ### ▶️ 自作AIエージェント（チャット式応答）
-![エージェントデモ画面](pics/FireShot3.png)
+![エージェントデモ画面](pics/img3.png)
 
 ---
 
