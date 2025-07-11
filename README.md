@@ -32,9 +32,9 @@
 ### 🟥 自作AIエージェント（日本語対応）
 - Bedrock Agent ＋ ReAct（Reasoning + Acting）手法によるマルチエージェントチャット。
 - ユーザーの質問内容に応じて以下の3つの処理を自動で切り替え：
-    1. **AWSの最新情報取得**（Lambda + SerpAPI）
-    2. **JPX関連の文書検索**（Bedrock RAG）
-    3. **その他の質問対応**（Claude 3）
+  1. **AWSの最新情報取得**（Lambda + SerpAPI）
+  2. **JPX関連の文書検索**（Bedrock RAG）
+  3. **その他の質問対応**（Claude 3）
 
 ---
 
@@ -42,22 +42,22 @@
 
 ### 💻 使用言語・ライブラリ
 - Python
-    - FastAPI
-    - PyTorch
-    - tiktoken
-    - langchain
+  - FastAPI
+  - PyTorch
+  - tiktoken
+  - langchain
 
 ### ☁️ 使用サービス・外部API
 - **AWS**
-    - EC2（Webアプリホスティング）
-    - S3（ファイル保存）
-    - Bedrock（Claude 3, Knowledge Base, Agent）
-    - Lambda（API連携）
+  - EC2（Webアプリホスティング）
+  - S3（ファイル保存）
+  - Bedrock（Claude 3, Knowledge Base, Agent）
+  - Lambda（API連携）
 - **その他**
-    - Claude 3（via Bedrock）
-    - Pinecone（ベクトルDB）
-    - SerpAPI（Google検索結果取得）
-    - Google Colab（モデル訓練環境）
+  - Claude 3（via Bedrock）
+  - Pinecone（ベクトルDB）
+  - SerpAPI（Google検索結果取得）
+  - Google Colab（モデル訓練環境）
 
 ---
 
@@ -98,12 +98,36 @@ uvicorn api_server:app --host 0.0.0.0 --port 5000
 
 ---
 
+
+---
+
+## 🔄 Git Flow 運用について
+
+このリポジトリは Git Flow に基づいて管理されています。  
+ブランチ戦略として、`main` / `develop` / `feature/*` / `release/*` / `hotfix/*` の構成を採用しています。
+
+🔗 関連ブログ投稿（執筆者：崔 玉澤）  
+👉 [Git Flowの基本運用と注意点 - KINTO Technologies Tech Blog](https://blog.kinto-technologies.com/posts/2022-12-03-gitflow/)
+
+---
+
+## ⚙️ GitHub Actions（CI/CD）
+
+本リポジトリには以下の GitHub Actions ワークフローが設定されています：
+
+- **release**：指定ブランチのコードをEC2へリリース
+- **deploy**：リリースが完了後にWebアプリケーションを起動
+- **stop**：Webアプリケーションを手動で停止
+
+ワークフローは `.github/workflows/` フォルダ内に構成されています。
+
+
 ## 🙋‍♂️ 開発者情報
 
 **崔 玉澤（Yuze Cui）**
 
 - ITエンジニア・プロジェクトマネージャー
-- AI実装者検定B級・G検定・Python3データ分析認定取得
+- G検定・AI実装者検定B級・Python3データ分析認定取得
 - LLMおよびAWS Bedrockを活用した生成AIソリューション開発に取り組んでいます
 
 ご質問・ご連絡は GitHub 上のIssueよりお気軽にどうぞ。
