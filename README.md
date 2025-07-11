@@ -107,7 +107,7 @@ GitFlowのブランチ戦略としては、`main` / `develop` / `feature/*` / `r
 本プロジェクトは小規模のため`main` / `feature/*` の構成になっています。
 
 🔗 関連ブログ投稿（執筆者：崔 玉澤）  
-👉 [Git Flowの基本運用と注意点 - KINTO Technologies Tech Blog](https://blog.kinto-technologies.com/posts/2022-12-03-gitflow/)
+👉 [バックオフィスシステム開発におけるGitflowの使い方について - KINTO Technologies Tech Blog](https://blog.kinto-technologies.com/posts/2022-12-03-gitflow/)
 
 ---
 
