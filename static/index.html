@@ -61,6 +61,41 @@
       background-color: #f1f1f1;
       border-left: 4px solid #007BFF;
     }
+
+    details summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 8px 12px;
+      font-weight: bold;
+      font-size: 14px;
+      background-color: transparent;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+      display: inline-flex; /* ← ここ重要 */
+      align-items: center;
+    }
+
+    details summary:hover {
+      background-color: #f0f0f0;
+    }
+
+    details[open] summary::after {
+      content: "▲";
+      margin-left: 8px;  /* ← ここ変更 */
+      color: #444;
+    }
+
+    details:not([open]) summary::after {
+      content: "▼";
+      margin-left: 8px;  /* ← ここ変更 */
+      color: #444;
+    }
+
+    details ul {
+      margin-top: 8px;
+      padding-left: 20px;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -83,15 +118,35 @@
     <li><b>迷惑メール分類：</b>GPT-2 モデルに対して「分類タスク」のファインチューニングを施し、英語メッセージをスパム／非スパムに分類します。</li>
     <li><b>指示に基づく回答生成：</b>同じく GPT-2 モデルに対して「命令文応答タスク」のファインチューニングを行い、英語での対話指示に応じた回答を生成します（日本語は未対応）</li>
   </ul>
-  <p>いずれのモデルも Google Colab 上で学習を行い、現在は EC2 上の Web アプリからリアルタイムで推論可能です。</p>
-
+  <p>いずれのモデルも Google Colab 上で学習を行い、現在は EC2 上の Web アプリからリアルタイムで推論可能です。<br>
+    なお、本デモでは計算リソースの制約を考慮し、軽量な GPT-2 モデルを採用しているため、<strong>対応言語は英語のみに限定しています</strong>。
+  </p>
   <h3>1. スパム分類モデル学習</h3>
   <p>この分類モデルは Google Colab 上で事前に訓練されました。学習の詳細はこちら：</p>
   <a href="https://colab.research.google.com/drive/1hdvDvt_2Bdi6xo7g8RCQMG2IDc88mCGH?usp=sharing" target="_blank">
     ▶ Google Colab Notebook を見る
   </a>
   <h3>2. スパム分類を試してみよう</h3>
+  <details style="margin-bottom: 15px;">
+    <summary><b>📌 分類の例を表示（クリックで展開）</b></summary>
+    <div style="margin-top: 10px;">
+      <b>🟢 非スパム例:</b>
+      <ul>
+        <li>Let’s meet at 3 PM for the project discussion.</li>
+        <li>Your Amazon package has been shipped.</li>
+        <li>Can you send me the updated file?</li>
+      </ul>
+      <b>🔴 スパム例:</b>
+      <ul>
+        <li>This is a limited time offer! Click now to win a free iPhone!</li>
+        <li>You are a winner you have been specially  selected to receive $1000 cash or a $2000 award.</li>
+        <li>Call Free 0800 1956669 or text back help</li>
+      </ul>
+    </div>
+  </details>
+
   <input type="text" id="spam_input" placeholder="ここにメッセージを英語で入力してください">
+  <br>
   <button onclick="checkSpam()">分類</button>
   <div id="spam_output" class="output"></div>
 
@@ -102,35 +157,88 @@
     ▶ Google Colab Notebook を見る
   </a>
   <h3>4. 指示に基づく回答生成を試してみよう</h3>
-  <input type="text" id="generate_input" placeholder="ここに指示を英語で入力してください">
-  <button onclick="generateResponse()">分類</button>
+  <details>
+    <summary><b>📌 指示入力フォーマットと例（クリックで展開）</b></summary>
+    <p>以下の形式で英語の指示を入力してください：</p>
+    <pre style="background-color: #f4f4f4; padding: 10px; border-radius: 5px;">
+Below is an instruction that describes a task. Write a response that appropriately completes the request.
+
+### Instruction:
+Rewrite the sentence using a simile.
+
+### Input:
+The car is very fast.</pre>
+    <p>その他の例：</p>
+    <ul>
+      <li><code>### Instruction:</code> What type of cloud is typically associated with thunderstorms? </li>
+      <li><code>### Instruction:</code> Rewrite the following sentence using passive voice. <br><code>### Input:</code> The team achieved great results.</li>
+    </ul>
+  </details>
+  <textarea id="generate_input" placeholder="ここに指示を英語で入力してください" rows="8" style="width: 80%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px;"></textarea>
+  <br>
+  <button onclick="generateResponse()">送信</button>
   <div id="generate_output" class="output"></div>
 </div>
 
 <div id="rag" class="content">
-  <p>このセクションでは、自作のRAG（Retrieval-Augmented Generation）機能をご体験頂けます。</p>
-  <ul>
-    <li>Amazon BedrockのKnowledge Baseと統合し、ナレッジベースに登録された社内資料を検索して回答を生成。</li>
-    <li>関連情報が存在しない場合、「ナレッジベースに該当情報がありません」と通知します。</li>
-  </ul>
-
   <h3>RAG 質問応答</h3>
+  <p>
+    このセクションでは、自作のRAG（Retrieval-Augmented Generation）機能をご体験頂けます。<br/>
+    Amazon BedrockのKnowledge Base機能を活用し、社内資料を検索・要約して日本語での回答を生成します。
+  </p>
+  <p>
+    現在登録されているナレッジベースには、株式会社日本取引所グループ（JPX）の2023年度第2四半期・第3四半期の決算説明資料（PDF）が含まれています。
+    これらの資料には、売上・営業利益の変動要因、取引所別の業績、投資家向けの施策、費用構造の分析などが含まれています。
+  </p>
+  <details>
+    <summary><b>📌 質問例を表示（クリックで展開）</b></summary>
+    <ul>
+      <li>2023年度第3四半期の売上が増えた理由は何ですか？</li>
+      <li>JPXの2023年3Qの決算について教えてください。</li>
+      <li>2023年第2四半期と第3四半期の比較で、費用の増減要因は何ですか？</li>
+      <li>JPXは中期的にどのようなIT投資を計画していますか？</li>
+    </ul>
+  </details>
   <input type="text" id="rag_input" placeholder="質問を入力してください">
   <button onclick="sendRAG()">検索</button>
   <div id="rag_output" class="output"></div>
 </div>
 
 <div id="agent" class="content">
-  <p>このセクションでは、Bedrock AgentによるAIエージェントとのチャット機能をご体験頂けます。</p>
+  <p>
+    このセクションでは、Bedrock Agent による AI エージェントとのチャット機能をご体験いただけます。<br/>
+    本エージェントは、ReAct（Reasoning + Acting）手法に基づき、ユーザーの指示内容を理解・分類した上で、適切な情報源を選定し、自動でタスクを実行・応答する構成となっています。
+  </p>
+
   <ul>
-    <li>ユーザーの質問内容を以下3カテゴリに分類して処理します：</li>
+    <li>ユーザーの質問内容を以下の 3 カテゴリに分類し、それぞれ適切な方法で回答を生成します：</li>
     <ul>
-      <li><b>a)</b> AWSの最新情報 → 外部APIから取得</li>
-      <li><b>b)</b> 一般知識 → Claude 3 による回答</li>
-      <li><b>c)</b> 社内ナレッジ → Knowledge Baseから回答</li>
+      <li>
+        <b>a) AWSの最新情報に関する質問：</b><br/>
+        → Lambda 関数を呼び出して、<a href="https://aws.amazon.com/jp/blogs/aws/" target="_blank">AWS公式ブログ</a> の最新情報を取得し、要約して回答します。
+      </li>
+      <li>
+        <b>b) 日本取引所グループ（JPX）の決算に関する質問：</b><br/>
+        → RAG 機能（社内ナレッジベース）を使用して関連資料から検索・回答します。
+      </li>
+      <li>
+        <b>c) それ以外の一般的な質問：</b><br/>
+        → Claude 3 モデルが持つ知識をもとに直接回答します。
+      </li>
     </ul>
-    <li>Bedrock Agentのfunction calling機能を活用した本格的なマルチツール統合構成です。</li>
+
+    <li>
+      <details>
+        <summary><b>📌 質問例を表示（クリックで展開）</b></summary>
+        <ul>
+          <li><b>a)</b> AWSの最新情報について教えてください。</li>
+          <li><b>b)</b> JPXの第3四半期の売上が増えた理由は？</li>
+          <li><b>c)</b> 世界で一番歴史が長い国を教えてください。</li>
+        </ul>
+      </details>
+    </li>
   </ul>
+
   <h3>AIエージェント チャット</h3>
   <input type="text" id="agent_input" placeholder="指示を入力してください">
   <button onclick="sendAgent()">実行</button>
@@ -148,7 +256,7 @@
   async function checkSpam() {
     const text = document.getElementById('spam_input').value;
     const spamResultArea = document.getElementById('spam_output');
-    spamResultArea.textContent = "Checking...";
+    spamResultArea.textContent = "分類中...";
 
     try {
       const response = await fetch('/api/predict', {
@@ -163,7 +271,7 @@
       }
 
       const data = await response.json();
-      spamResultArea.innerHTML = `<b>Label:</b> ${data.label} <br><b>Confidence:</b> ${data.confidence.toFixed(4)}`;
+      spamResultArea.innerHTML = `<b>分類:</b> ${data.label} <br><b>信頼度:</b> ${data.confidence.toFixed(4)}`;
     } catch (err) {
       spamResultArea.textContent = "Request failed: " + err.message;
     }
@@ -172,7 +280,7 @@
   async function generateResponse() {
     const prompt = document.getElementById('generate_input').value;
     const resultArea = document.getElementById('generate_output');
-    resultArea.textContent = "生成中...";
+    resultArea.textContent = "生成中(数秒かかりますので少々お待ちください)...";
 
     try {
       const response = await fetch('/api/generate', {
@@ -194,6 +302,8 @@
   }
 
   async function sendRAG() {
+    const resultArea = document.getElementById('rag_output');
+    resultArea.textContent = "生成中(数秒かかりますので少々お待ちください)...";
     const input = document.getElementById("rag_input").value;
     const res = await fetch("/api/rag_qa", {
       method: "POST",
@@ -205,6 +315,8 @@
   }
 
   async function sendAgent() {
+    const resultArea = document.getElementById('agent_output');
+    resultArea.textContent = "生成中(数秒かかりますので少々お待ちください)...";
     const input = document.getElementById("agent_input").value;
     const res = await fetch("/api/agent_chat", {
       method: "POST",

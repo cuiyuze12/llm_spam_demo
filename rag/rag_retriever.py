@@ -38,13 +38,6 @@ rag_chain = (
 # FastAPIから呼び出せる関数
 def real_rag_answer(question: str) -> str:
     try:
-        # Step 1: 先独立调用检索
-        docs = retriever.get_relevant_documents(question)
-
-        if not docs:  # 检索结果为空
-            return "🔍 ナレッジベースに該当情報がありません。"
-
-        # Step 2: 若命中，继续执行 RAG Chain
         return rag_chain.invoke(question)
     except Exception as e:
         return f"エラーが発生しました: {str(e)}"
