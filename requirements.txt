@@ -1,9 +1,17 @@
-torch == 2.2.2+cpu
-tiktoken == 0.9.0
-fastapi
-uvicorn
-pydantic == 2.11.7
-numpy == 1.26.4
-boto3 == 1.38.46
+# コンフリクトをさけるため、以下のコマンドでインストールしてください。
+# pip install -r requirements.txt --use-deprecated=legacy-resolver
+tiktoken==0.9.0
+fastapi==0.115.14
+uvicorn==0.34.3
+pydantic==2.11.7
+numpy==1.26.4
+boto3==1.39.3
 langchain==0.2.0
-langchain-aws==0.1.4
+langchain-aws==0.2.27
+langchain-core==0.3.68
+langchain-text-splitters==0.2.4
+Jinja2==3.1.6
+python-multipart==0.0.20
+
+# ⚠️ pytorchはCPU-onlyバージョンになるため，以下のコマンドでインストールしてください。
+# pip install torch==2.2.2+cpu -f https://download.pytorch.org/whl/torch_stable.html
