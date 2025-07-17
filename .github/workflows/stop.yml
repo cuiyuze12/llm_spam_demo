@@ -16,6 +16,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: |
+            cd llm_spam_demo
             set +e  # 不要因为某个命令失败而退出
             echo "Stopping FastAPI service..."
 
