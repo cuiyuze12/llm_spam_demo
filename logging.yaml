@@ -1,0 +1,16 @@
+version: 1
+formatters:
+  default:
+    format: '%(asctime)s - %(levelname)s - %(message)s'
+
+handlers:
+  access_file_handler:
+    class: logging.FileHandler
+    filename: /var/log/myapp/access.log
+    formatter: default
+
+loggers:
+  uvicorn.access:
+    level: INFO
+    handlers: [access_file_handler]
+    propagate: no
