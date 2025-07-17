@@ -16,10 +16,27 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: |
+            cd llm_spam_demo
+            set +e  # 不要因为某个命令失败而退出
             echo "Stopping FastAPI service..."
-            if pkill -f uvicorn; then
-              echo "✅ uvicorn stopped successfully"
+
+            if [ -f uvicorn.pid ]; then
+              PID=$(cat uvicorn.pid)
+              if kill -0 $PID >/dev/null 2>&1; then
+                echo "Killing uvicorn process PID: $PID"
+                kill $PID
+                sleep 3
+                if kill -0 $PID >/dev/null 2>&1; then
+                  echo "Force killing uvicorn PID: $PID"
+                  kill -9 $PID
+                fi
+                echo "uvicorn stopped."
+              else
+                echo "PID $PID not running."
+              fi
+              rm -f uvicorn.pid
             else
-              echo "⚠️ No uvicorn process was running"
+              echo "PID file not found. uvicorn may not be running."
             fi
+
             exit 0
