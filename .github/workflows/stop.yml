@@ -19,30 +19,23 @@ jobs:
             set +e  # 不要因为某个命令失败而退出
             echo "Stopping FastAPI service..."
 
-            # 精确匹配你的启动命令
-            PIDS=$(pgrep -f 'demovenv/bin/uvicorn.*api_server:app' || true)
-
-            if [ -n "$PIDS" ]; then
-              echo "Found uvicorn PIDs: $PIDS"
-              kill $PIDS 2>/dev/null || true
-
-              # 等待最多10秒确保进程退出
-              for i in $(seq 1 10); do
-                if pgrep -f 'demovenv/bin/uvicorn.*api_server:app' >/dev/null; then
-                  sleep 1
-                else
-                  break
+            if [ -f uvicorn.pid ]; then
+              PID=$(cat uvicorn.pid)
+              if kill -0 $PID >/dev/null 2>&1; then
+                echo "Killing uvicorn process PID: $PID"
+                kill $PID
+                sleep 3
+                if kill -0 $PID >/dev/null 2>&1; then
+                  echo "Force killing uvicorn PID: $PID"
+                  kill -9 $PID
                 fi
-              done
-
-              if pgrep -f 'demovenv/bin/uvicorn.*api_server:app' >/dev/null; then
-                echo "Process did not exit cleanly; forcing kill -9."
-                pkill -9 -f 'demovenv/bin/uvicorn.*api_server:app' || true
+                echo "uvicorn stopped."
+              else
+                echo "PID $PID not running."
               fi
-              echo "uvicorn stopped."
+              rm -f uvicorn.pid
             else
-              echo "No uvicorn process found."
+              echo "PID file not found. uvicorn may not be running."
             fi
 
-            # 永远以成功状态结束
             exit 0

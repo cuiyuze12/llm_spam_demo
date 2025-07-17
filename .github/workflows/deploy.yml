@@ -35,5 +35,5 @@ jobs:
             cd ~/llm_spam_demo
             source demovenv/bin/activate
             pkill uvicorn || true
-            nohup demovenv/bin/uvicorn api_server:app --host 0.0.0.0 --port 5000 --log-config logging.yaml > uvicorn.log 2>&1 & echo "Uvicorn started"
+            nohup demovenv/bin/uvicorn api_server:app --host 0.0.0.0 --port 5000 --log-config logging.yaml > uvicorn.log 2>&1 & echo $! > uvicorn.pid
             echo "✅ API restarted successfully."
