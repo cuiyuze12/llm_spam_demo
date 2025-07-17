@@ -16,10 +16,33 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: |
+            set +e  # 不要因为某个命令失败而退出
             echo "Stopping FastAPI service..."
-            if pkill -f uvicorn; then
-              echo "✅ uvicorn stopped successfully"
+
+            # 精确匹配你的启动命令
+            PIDS=$(pgrep -f 'demovenv/bin/uvicorn.*api_server:app' || true)
+
+            if [ -n "$PIDS" ]; then
+              echo "Found uvicorn PIDs: $PIDS"
+              kill $PIDS 2>/dev/null || true
+
+              # 等待最多10秒确保进程退出
+              for i in $(seq 1 10); do
+                if pgrep -f 'demovenv/bin/uvicorn.*api_server:app' >/dev/null; then
+                  sleep 1
+                else
+                  break
+                fi
+              done
+
+              if pgrep -f 'demovenv/bin/uvicorn.*api_server:app' >/dev/null; then
+                echo "Process did not exit cleanly; forcing kill -9."
+                pkill -9 -f 'demovenv/bin/uvicorn.*api_server:app' || true
+              fi
+              echo "uvicorn stopped."
             else
-              echo "⚠️ No uvicorn process was running"
+              echo "No uvicorn process found."
             fi
+
+            # 永远以成功状态结束
             exit 0
