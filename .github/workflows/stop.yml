@@ -18,7 +18,8 @@ jobs:
           script: |
             echo "Stopping FastAPI service..."
             if pkill -f uvicorn; then
-              echo "uvicorn stopped"
+              echo "✅ uvicorn stopped successfully"
             else
-              echo "No uvicorn process found"
+              echo "⚠️ No uvicorn process was running"
             fi
+            exit 0
