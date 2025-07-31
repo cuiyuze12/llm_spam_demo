@@ -5,7 +5,6 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 import boto3
 
-
 session = boto3.Session()
 kb_client = session.client("bedrock-runtime", region_name="us-east-1")
 
