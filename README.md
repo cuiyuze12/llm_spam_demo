@@ -127,7 +127,7 @@ GitFlowのブランチ戦略としては、`main` / `develop` / `feature/*` / `r
 **崔 玉澤（Yuze Cui）**
 
 - ITエンジニア・プロジェクトマネージャー
-- G検定・AI実装者検定B級・Python3データ分析認定取得
+- G検定・AI実装者検定A級・Python3データ分析認定取得
 - LLMおよびAWS Bedrockを活用した生成AIソリューション開発に取り組んでいます
 
 ご質問・ご連絡は GitHub 上のIssueよりお気軽にどうぞ。
