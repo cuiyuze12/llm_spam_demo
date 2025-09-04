@@ -1,14 +1,14 @@
-name: Stop FastAPI Server on EC2
+name: Stop wonderlusia on EC2
 
 on:
-  workflow_dispatch:  # 手动触发
+  workflow_dispatch: {}
 
 jobs:
   stop-server:
     runs-on: ubuntu-latest
-
+    continue-on-error: true
     steps:
-      - name: Stop FastAPI server via SSH
+      - name: Stop wonderlusia via SSH (systemd first, legacy fallback)
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -16,27 +16,48 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: |
-            cd llm_spam_demo
-            set +e  # 不要因为某个命令失败而退出
-            echo "Stopping FastAPI service..."
+            # 不因为单条命令失败而中断；我们手动控制返回码
+            set +e
 
-            if [ -f uvicorn.pid ]; then
-              PID=$(cat uvicorn.pid)
-              if kill -0 $PID >/dev/null 2>&1; then
-                echo "Killing uvicorn process PID: $PID"
-                kill $PID
-                sleep 3
-                if kill -0 $PID >/dev/null 2>&1; then
-                  echo "Force killing uvicorn PID: $PID"
-                  kill -9 $PID
-                fi
-                echo "uvicorn stopped."
-              else
-                echo "PID $PID not running."
-              fi
-              rm -f uvicorn.pid
-            else
-              echo "PID file not found. uvicorn may not be running."
+            SERVICE_NAME="wonderlusia"
+            # 如与你不同，请改成绝对路径
+            PROJECT_DIR="/home/ubuntu/llm_spam_demo"
+            [ -d "$PROJECT_DIR" ] || PROJECT_DIR="$HOME/llm_spam_demo"
+            PIDFILE="$PROJECT_DIR/uvicorn.pid"
+            PORT="5000"
+
+            if command -v sudo >/dev/null 2>&1; then SUDO="sudo -n"; else SUDO=""; fi
+
+            echo "🔎 Target: $PROJECT_DIR"
+            echo "🛑 Stopping $SERVICE_NAME ..."
+
+            # 1) 优先 systemd
+            if command -v systemctl >/dev/null 2>&1; then
+              $SUDO systemctl stop "${SERVICE_NAME}.service" >/dev/null 2>&1 || true
+              sleep 1
+              echo "ℹ️ systemd state:" && $SUDO systemctl is-active "${SERVICE_NAME}.service" 2>/dev/null || true
             fi
 
+            # 2) 旧 PID 文件
+            if [ -f "$PIDFILE" ]; then
+              PID="$(cat "$PIDFILE" 2>/dev/null || true)"
+              if [ -n "$PID" ]; then
+                echo "▶ Killing PID: $PID"
+                $SUDO kill "$PID" 2>/dev/null || true
+                sleep 1
+                $SUDO kill -9 "$PID" 2>/dev/null || true
+              fi
+              rm -f "$PIDFILE" 2>/dev/null || true
+            fi
+
+            # 3) 兜底
+            $SUDO pkill -f 'uvicorn .*api_server:app' 2>/dev/null || true
+
+            echo "🔎 Post-stop checks (non-fatal):"
+            $SUDO ss -lptn "sport = :$PORT" || true
+            pgrep -af uvicorn || true
+            command -v journalctl >/dev/null 2>&1 && $SUDO journalctl -u "${SERVICE_NAME}" -n 20 --no-pager || true
+
+            echo "✅ Stop workflow finished."
+            # 无论上面有无非 0，都让整步成功
             exit 0
