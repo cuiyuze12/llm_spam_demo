@@ -56,11 +56,16 @@
       background-color: #218838;
     }
     .output {
-      margin-top: 20px;
-      padding: 10px;
-      background-color: #f1f1f1;
-      border-left: 4px solid #007BFF;
+      margin-top: 20px; padding: 10px; background-color: #f1f1f1; border-left: 4px solid #007BFF;
+      white-space: pre-wrap; word-break: break-word;
     }
+    .output pre {
+      margin: 0; padding: 12px; background: #0b1020; color: #e6edf3; overflow-x: auto; border-radius: 6px;
+    }
+    .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .muted { color: #666; font-size: 12px; }
+    .btn-secondary { background-color: #6c757d; }
+    .btn-secondary:hover { background-color: #5c636a; }
 
     details summary {
       list-style: none;
@@ -114,6 +119,9 @@
   <div class="tab active" onclick="switchTab('llm')">自作LLM</div>
   <div class="tab" onclick="switchTab('rag')">自作RAG</div>
   <div class="tab" onclick="switchTab('agent')">自作AIエージェント</div>
+  <!-- ▼▼▼ 新規タブ：注文書生成 ▼▼▼ -->
+  <div class="tab" onclick="switchTab('order')">注文書生成（JSON）</div>
+  <!-- ▲▲▲ 新規タブここまで ▲▲▲ -->
 </div>
 
 <div id="llm" class="content active">
@@ -178,7 +186,7 @@ The car is very fast.</pre>
       <li><code>### Instruction:</code> Rewrite the following sentence using passive voice. <br><code>### Input:</code> The team achieved great results.</li>
     </ul>
   </details>
-  <textarea id="generate_input" placeholder="ここに指示を英語で入力してください" rows="8" style="width: 80%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px;"></textarea>
+  <textarea id="generate_input" placeholder="ここに指示を英語で入力してください" rows="8"></textarea>
   <br>
   <button onclick="generateResponse()">送信</button>
   <div id="generate_output" class="output"></div>
@@ -249,7 +257,41 @@ The car is very fast.</pre>
   <div id="agent_output" class="output"></div>
 </div>
 
+<!-- ▼▼▼ 新規コンテンツ：注文書生成（JSON表示） ▼▼▼ -->
+<div id="order" class="content">
+  <h3>注文書生成（自然言語→構造化JSON）</h3>
+  <p class="muted">ユーザーの日本語依頼を LLM が解析し、バックエンドで Pydantic により厳密検証した JSON を返します。</p>
+
+  <details>
+    <summary><b>📌 入力例を表示（クリックで展開）</b></summary>
+    <div style="margin-top: 8px;">
+      例：<br>
+      「請求書を作成してください。買い手はABC商事（東京都中央区、buyer@example.com）、<br>
+       Jetson Orin Nano 8GB（SKU: JET-ORIN-NANO-8G）を3台（単価49,800円）、<br>
+       ACアダプタ120W（SKU: PSU-120W）を1個（単価3,000円）。<br>
+       支払方法は銀行振込、発行日は今日、備考は『9/30までに納品』。」
+    </div>
+  </details>
+
+  <textarea id="order_text" rows="6" placeholder="注文内容を日本語で入力してください"></textarea>
+  <div class="row">
+    <label for="template_id">テンプレート：</label>
+    <select id="template_id" style="width:auto;">
+      <option value="invoice_default_v1" selected>invoice_default_v1</option>
+      <!-- 将来テンプレートを追加したらここにoptionを増やしてください -->
+    </select>
+    <button onclick="createOrder()">JSONを生成</button>
+    <button class="btn-secondary" onclick="copyOrderJson()">JSONをコピー</button>
+    <span id="order_status" class="muted"></span>
+  </div>
+  <div id="order_output" class="output"><pre id="order_pre">// ここにJSONが表示されます</pre></div>
+</div>
+<!-- ▲▲▲ 新規コンテンツここまで ▲▲▲ -->
+
 <script>
+  // ===== 設定 =====
+  const ORDER_API = '/agent/order/create'; // ← FastAPI ルート。必要に応じて変更してください。
+
   function switchTab(tabName) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
@@ -329,6 +371,55 @@ The car is very fast.</pre>
     });
     const data = await res.json();
     document.getElementById("agent_output").innerText = data.answer || "応答がありません";
+  }
+
+  // ===== 注文書生成（JSON表示） =====
+  function pretty(obj) {
+    try { return JSON.stringify(obj, null, 2); } catch { return String(obj); }
+  }
+
+  async function createOrder() {
+    const text = document.getElementById('order_text').value.trim();
+    const template_id = document.getElementById('template_id').value;
+    const pre = document.getElementById('order_pre');
+    const status = document.getElementById('order_status');
+
+    if (!text) {
+      pre.textContent = '// 入力が空です';
+      return;
+    }
+    pre.textContent = '生成中...(数秒お待ちください)';
+    status.textContent = '';
+
+    try {
+      const res = await fetch(ORDER_API, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ text, template_id })
+      });
+
+      const contentType = res.headers.get('content-type') || '';
+      if (!res.ok) {
+        const errText = contentType.includes('application/json') ? pretty(await res.json()) : await res.text();
+        pre.textContent = `// Error ${res.status}: ${res.statusText}\n${errText}`;
+        return;
+        }
+
+      const data = contentType.includes('application/json') ? await res.json() : { raw: await res.text() };
+      pre.textContent = pretty(data);
+      status.textContent = '✔ JSONを受信しました';
+    } catch (e) {
+      pre.textContent = `// Request failed: ${e.message}`;
+    }
+  }
+
+  function copyOrderJson() {
+    const pre = document.getElementById('order_pre');
+    const text = pre.textContent || pre.innerText || '';
+    navigator.clipboard.writeText(text).then(
+      () => alert('JSONをコピーしました'),
+      () => alert('コピーに失敗しました')
+    );
   }
 </script>
 </body>

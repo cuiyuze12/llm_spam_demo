@@ -4,6 +4,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from finetuned_model.load_classifier import load_model_and_tokenizer, classify_review
 from finetuned_model.load_generator import load_generation_model, generate_text
+from create_order.llm_parser import parse_order_from_text
 from rag.rag_retriever import real_rag_answer
 from agent.agent_chatter import run_bedrock_agent
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -118,3 +119,20 @@ async def agent_chat(req: AgentRequest):
         "answer": result["text"],
         "category": result["category"]
     }
+
+# ===== 新規追加: 注文書生成 =====
+class OrderRequest(BaseModel):
+    text: str
+    template_id: str = "invoice_default_v1"  # 将来扩展时可支持不同模板
+    
+@app.post("/agent/order/create")
+def create_order(req: OrderRequest):
+    """
+    ユーザーの日本語依頼テキストを受け取り、注文書の構造化JSONを生成して返す。
+    """
+    try:
+        order = parse_order_from_text(req.text)
+        # Pydanticモデルのdictを返すと自動でJSONシリアライズされる
+        return order.model_dump()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"注文書生成に失敗しました: {str(e)}")

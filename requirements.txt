@@ -15,3 +15,7 @@ python-multipart==0.0.20
 
 # ⚠️ pytorchはCPU-onlyバージョンになるため，以下のコマンドでインストールしてください。
 # pip install torch==2.2.2+cpu -f https://download.pytorch.org/whl/torch_stable.html
+
+# For strict data validation (日本語キー alias + JSON校正用)
+pydantic[email]>=2,<3
+
