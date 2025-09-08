@@ -14,6 +14,22 @@ REQUIRED = [
     "payment_method",
 ]
 
+def extract_json(raw: str) -> dict:
+    """
+    尝试从模型输出里提取 JSON：
+    1) 先直接 json.loads
+    2) 失败则截取第一个 '{' 到最后一个 '}' 的片段再 loads
+    """
+    if raw is None:
+        raise ValueError("LLM 返回为空")
+    try:
+        return json.loads(raw)
+    except Exception:
+        start, end = raw.find("{"), raw.rfind("}")
+        if start == -1 or end == -1 or end <= start:
+            raise ValueError("未找到有效的 JSON 片段")
+        return json.loads(raw[start:end + 1])
+
 def calc_missing(d: OrderDraft) -> List[str]:
     missing = []
     if not (d.buyer and d.buyer.name): missing.append("buyer.name")
@@ -75,6 +91,17 @@ def apply_single_answer(d: OrderDraft, field: str, text: str) -> OrderDraft:
              "クレジットカード":"CARD","カード":"CARD","現金":"CASH"}
         d.payment_method = m.get(t, None)
     return OrderDraft(**d.model_dump(by_alias=True, exclude_none=True))
+
+def to_strict_order(d: OrderDraft) -> Order:
+    """
+    将 Draft（字段允许为 None）转换为严格的 Order。
+    要求 Draft 已经补全了所有必填；这里做最终规范化和校验。
+    """
+    data = d.model_dump(by_alias=True, exclude_none=True)
+    # 没有 issue_date 就给今天（抽取阶段未填时）
+    data.setdefault("issue_date", date.today().isoformat())
+    # 交给严格的 Pydantic Order 校验
+    return Order(**data)
 
 def to_order_if_complete(d: OrderDraft) -> Tuple[bool, Order]:
     """

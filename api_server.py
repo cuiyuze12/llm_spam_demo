@@ -11,8 +11,9 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 import time
 
-from create_order.schemas import OrderDraft, Order, to_order_if_complete
-from create_order.dialogue import calc_missing, next_question, apply_single_answer
+from create_order.schemas import OrderDraft, Order
+from create_order.dialogue import calc_missing, next_question, apply_single_answer, to_order_if_complete
+
 from typing import List, Optional
 
 app = FastAPI()

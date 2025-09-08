@@ -2,6 +2,7 @@ import json
 from datetime import date
 from pydantic import ValidationError
 from .schemas import Order, OrderDraft
+from .dialogue import extract_json, calc_missing, to_order_if_complete, to_strict_order
 from langchain_aws import ChatBedrock
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
@@ -106,12 +107,12 @@ def call_llm(prompt: str) -> str:
 
 def parse_order_from_text(request_text: str) -> Order:
     raw = call_llm(USER_TEMPLATE_JA.format(request=request_text))
-    data = _extract_json(raw)
+    data = extract_json(raw)
 
     draft = OrderDraft(**data)  # ← 允许很多字段为 None
 
     # 关键检查：若仍缺必要字段，就直接返回“草稿JSON + missing_fields”
-    missing = _calc_missing(draft)  # 你自定义：如 buyer.name / items[0].qty / unit_price 等
+    missing = calc_missing(draft)  # 你自定义：如 buyer.name / items[0].qty / unit_price 等
     if missing:
         # 返回草稿，前端显示并引导用户补全；也可把 missing_fields 一并返回
         return draft
