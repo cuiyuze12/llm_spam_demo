@@ -1,34 +1,42 @@
 import json
 from datetime import date
 from pydantic import ValidationError
-from .schemas import Order
+from .schemas import Order, OrderDraft
 from langchain_aws import ChatBedrock
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
 
 SYSTEM_JA = """\
-あなたはユーザーの日本語の注文依頼を、厳密な JSON の Order オブジェクトに変換するアシスタントです。
-出力は JSON のみ。説明文やコードブロックは出力しないでください。
-JSONのキー名は必ず英語（スキーマと一致）とし、値は日本語で構いません。
-日付: YYYY-MM-DD。currency: [JPY, USD, EUR]。payment_method: [CARD, BANK_TRANSFER, CASH]。
-価格は数値、小数2桁。items[].qty は正の整数。
+あなたはユーザーの日本語の注文依頼から、厳密なJSONのOrderDraftオブジェクトを
+**抽出**するアシスタントです。**決して架空の値を作らない**でください。
 
-スキーマ:
+- 出力はJSONのみ。説明やコードブロックは禁止。
+- JSONのキーは必ず英語（下記スキーマと一致）。値は日本語可。
+- **ユーザーの入力に存在しない情報は、絶対に生成しない。**
+  - 不明な項目は null にするか、省略する。
+- items[].qty は正の整数。不明なら null。
+- 価格/SKU/住所/電話/会社名/税番号など、ユーザーが言っていなければ null。
+- もし不足情報があれば、"missing_fields": ["buyer.name", "items[0].unit_price", ...] に列挙。
+- issue_date は入力がなければ null（サーバ側で補完する）。
+
+スキーマ（OrderDraft）:
 {
   "template_id": "invoice_default_v1",
-  "issue_date": "YYYY-MM-DD",
+  "issue_date": "YYYY-MM-DD (optional)",
   "due_date": "YYYY-MM-DD (optional)",
-  "seller": {"name": "...", "email": "...", "phone": "...", "address": "...", "tax_id": "..."},
-  "buyer":  {"name": "...", "email": "...", "phone": "...", "address": "...", "tax_id": "..."},
-  "currency": "JPY|USD|EUR",
-  "payment_method": "CARD|BANK_TRANSFER|CASH",
+  "seller": {"name": "...(optional)", "email": "...(optional)", "phone": "...(optional)", "address": "...(optional)", "tax_id": "...(optional)"},
+  "buyer":  {"name": "...(optional)", "email": "...(optional)", "phone": "...(optional)", "address": "...(optional)", "tax_id": "...(optional)"},
+  "currency": "JPY|USD|EUR (optional)",
+  "payment_method": "CARD|BANK_TRANSFER|CASH (optional)",
   "items": [
-    {"sku": "...", "name": "...", "qty": 1, "unit_price": 1000.00, "discount": 0}
+    {"sku": "...(optional)", "name": "...(optional)", "qty": 1, "unit_price": 1000.00 (optional), "discount": 0 (optional)}
   ],
-  "tax_rate_pct": 10.0,
-  "shipping_fee": 0,
-  "notes": "..."
+  "tax_rate_pct": 10.0 (optional),
+  "shipping_fee": 0 (optional),
+  "notes": "...(optional)",
+  "missing_fields": ["..."]  // 抽出できなかった必須候補
 }
+
 """
 
 USER_TEMPLATE_JA = """\
@@ -98,24 +106,36 @@ def call_llm(prompt: str) -> str:
 
 def parse_order_from_text(request_text: str) -> Order:
     raw = call_llm(USER_TEMPLATE_JA.format(request=request_text))
+    data = _extract_json(raw)
 
+    draft = OrderDraft(**data)  # ← 允许很多字段为 None
+
+    # 关键检查：若仍缺必要字段，就直接返回“草稿JSON + missing_fields”
+    missing = _calc_missing(draft)  # 你自定义：如 buyer.name / items[0].qty / unit_price 等
+    if missing:
+        # 返回草稿，前端显示并引导用户补全；也可把 missing_fields 一并返回
+        return draft
+
+    # 字段齐全 → 构造严格 Order（会触发数值约束校验）
+    order = to_strict_order(draft)  # 把 Optional 填满后转为 Order
+    return order
     # JSON 抽出（万一JSON以外が混入した場合の簡易ガード）
-    try:
-        data = json.loads(raw)
-    except Exception:
-        start, end = raw.find("{"), raw.rfind("}")
-        if start >= 0 and end >= 0:
-            data = json.loads(raw[start:end+1])
-        else:
-            raise
+    # try:
+    #     data = json.loads(raw)
+    # except Exception:
+    #     start, end = raw.find("{"), raw.rfind("}")
+    #     if start >= 0 and end >= 0:
+    #         data = json.loads(raw[start:end+1])
+    #     else:
+    #         raise
 
-    # 既定値の補完（例：発行日が無ければ今日）
-    data.setdefault("issue_date", date.today().isoformat())
+    # # 既定値の補完（例：発行日が無ければ今日）
+    # data.setdefault("issue_date", date.today().isoformat())
 
-    # Pydantic で厳密検証（日本語キーでも alias で受付・値はバリデータで正規化）
-    try:
-        order = Order(**data)
-        return order
-    except ValidationError as e:
-        # ここでエラー内容 e.errors() を LLM に再提示して再生成させるリトライ戦略も可
-        raise
+    # # Pydantic で厳密検証（日本語キーでも alias で受付・値はバリデータで正規化）
+    # try:
+    #     order = Order(**data)
+    #     return order
+    # except ValidationError as e:
+    #     # ここでエラー内容 e.errors() を LLM に再提示して再生成させるリトライ戦略も可
+    #     raise

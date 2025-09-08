@@ -285,6 +285,18 @@ The car is very fast.</pre>
     <span id="order_status" class="muted"></span>
   </div>
   <div id="order_output" class="output"><pre id="order_pre">// ここにJSONが表示されます</pre></div>
+
+  <hr>
+  <h3>注文内容の対話補完（不足があれば順に質問します）</h3>
+  <textarea id="order_chat_first" rows="3" placeholder="例：スマホを2台注文したいです。請求先は…"></textarea>
+  <br>
+  <button onclick="startOrderChat()">対話を開始</button>
+  <div id="order_chat_log" class="output" style="min-height:120px;"></div>
+  <div style="margin-top:8px;">
+    <input type="text" id="order_chat_answer" placeholder="ここに回答を入力（例：ABC商事）">
+    <button class="btn-secondary" onclick="replyOrderChat()">送信</button>
+  </div>
+  <pre id="order_chat_result" class="output" style="display:none;"></pre>
 </div>
 <!-- ▲▲▲ 新規コンテンツここまで ▲▲▲ -->
 
@@ -420,6 +432,67 @@ The car is very fast.</pre>
       () => alert('JSONをコピーしました'),
       () => alert('コピーに失敗しました')
     );
+  }
+  let orderDraft = null;
+  let currentField = null;
+
+  async function startOrderChat() {
+    const text = document.getElementById('order_chat_first').value.trim();
+    const log = document.getElementById('order_chat_log');
+    const result = document.getElementById('order_chat_result');
+    result.style.display = 'none';
+    result.textContent = '';
+
+    if (!text) { log.textContent = '入力が空です。'; return; }
+    log.textContent = '解析中...';
+
+    const res = await fetch('/agent/order/start', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ text, template_id: 'invoice_default_v1' })
+    });
+    const data = await res.json();
+
+    if (data.status === 'ask') {
+      orderDraft = data.draft;
+      currentField = data.field;
+      log.textContent = `質問：${data.question}`;
+    } else if (data.status === 'done') {
+      log.textContent = 'すべての必須項目が揃いました。';
+      result.textContent = JSON.stringify(data.order, null, 2);
+      result.style.display = 'block';
+    } else {
+      log.textContent = 'エラー：' + JSON.stringify(data);
+    }
+  }
+
+  async function replyOrderChat() {
+    const ans = document.getElementById('order_chat_answer').value.trim();
+    const log = document.getElementById('order_chat_log');
+    const result = document.getElementById('order_chat_result');
+    if (!orderDraft || !currentField) { log.textContent = '先に対話を開始してください。'; return; }
+    if (!ans) { return; }
+
+    log.textContent = '更新中...';
+
+    const res = await fetch('/agent/order/reply', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ draft: orderDraft, field: currentField, answer: ans })
+    });
+    const data = await res.json();
+
+    if (data.status === 'ask') {
+      orderDraft = data.draft;
+      currentField = data.field;
+      log.textContent = `質問：${data.question}`;
+      document.getElementById('order_chat_answer').value = '';
+    } else if (data.status === 'done') {
+      log.textContent = 'すべての必須項目が揃いました。';
+      result.textContent = JSON.stringify(data.order, null, 2);
+      result.style.display = 'block';
+      document.getElementById('order_chat_answer').value = '';
+    } else {
+      log.textContent = 'エラー：' + JSON.stringify(data);
+    }
   }
 </script>
 </body>

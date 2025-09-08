@@ -30,3 +30,4 @@ Thumbs.db
 
 # Secrets
 .env
+llm_spam_demo.code-workspace

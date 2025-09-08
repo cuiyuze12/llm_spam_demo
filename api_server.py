@@ -11,6 +11,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 import time
 
+from create_order.schemas import OrderDraft, Order, to_order_if_complete
+from create_order.dialogue import calc_missing, next_question, apply_single_answer
+from typing import List, Optional
+
 app = FastAPI()
 
 # ========== 配置 ==========
@@ -121,18 +125,58 @@ async def agent_chat(req: AgentRequest):
     }
 
 # ===== 新規追加: 注文書生成 =====
-class OrderRequest(BaseModel):
+class StartReq(BaseModel):
     text: str
-    template_id: str = "invoice_default_v1"  # 将来扩展时可支持不同模板
+    template_id: str = "invoice_default_v1"
+
+class StepReq(BaseModel):
+    draft: dict          # 前端携带当前的 OrderDraft JSON
+    field: str           # 这次回答的是哪个字段（上次返回给你的）
+    answer: str          # 用户的回答
     
-@app.post("/agent/order/create")
-def create_order(req: OrderRequest):
+@app.post("/agent/order/start")
+def order_start(req: StartReq):
     """
-    ユーザーの日本語依頼テキストを受け取り、注文書の構造化JSONを生成して返す。
+    第一次解析：把自然语言转为 OrderDraft，并给出第一个问题。
     """
     try:
-        order = parse_order_from_text(req.text)
-        # Pydanticモデルのdictを返すと自動でJSONシリアライズされる
-        return order.model_dump()
+        draft = parse_order_from_text(req.text)  # 这里请让 parse 返回 OrderDraft（上一条已给）
+        if isinstance(draft, OrderDraft) is False:
+            # 如果你的 parse 仍返回严格 Order，也可以先转成 Draft；建议直接改 parse 返回 Draft
+            draft = OrderDraft(**draft.model_dump())
+        missing = calc_missing(draft)
+        if not missing:
+            done, order = to_order_if_complete(draft)
+            if done: return {"status":"done", "order": order.model_dump()}
+        field = missing[0]
+        return {
+            "status": "ask",
+            "question": next_question(field),
+            "field": field,
+            "draft": draft.model_dump(by_alias=True, exclude_none=True)
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"注文書生成に失敗しました: {str(e)}")
+        raise HTTPException(500, f"解析失败: {e}")
+
+@app.post("/agent/order/reply")
+def order_reply(req: StepReq):
+    """
+    后续轮次：只填当前字段，生成新的 draft；若已齐全则返回最终 order。
+    """
+    try:
+        draft = OrderDraft(**req.draft)
+        draft2 = apply_single_answer(draft, req.field, req.answer)
+        missing = calc_missing(draft2)
+        if not missing:
+            done, order = to_order_if_complete(draft2)
+            if done:
+                return {"status":"done", "order": order.model_dump()}
+        field = missing[0]
+        return {
+            "status": "ask",
+            "question": next_question(field),
+            "field": field,
+            "draft": draft2.model_dump(by_alias=True, exclude_none=True)
+        }
+    except Exception as e:
+        raise HTTPException(500, f"更新失败: {e}")

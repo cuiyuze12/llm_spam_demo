@@ -14,6 +14,34 @@ class PaymentMethod(str, Enum):
     BANK_TRANSFER = "BANK_TRANSFER"
     CASH = "CASH"
 
+class OrderItemDraft(BaseModel):
+    sku: Optional[str] = Field(default=None, alias=AliasChoices("sku","SKU","型番"))
+    name: Optional[str] = Field(default=None, alias=AliasChoices("name","品名","商品名"))
+    qty: Optional[int]  = Field(default=None, gt=0, alias=AliasChoices("qty","数量"))
+    unit_price: Optional[condecimal(gt=0, max_digits=12, decimal_places=2)] = Field(default=None, alias=AliasChoices("unit_price","単価"))
+    discount: Optional[condecimal(ge=0, max_digits=12, decimal_places=2)] = Field(default=None, alias=AliasChoices("discount","値引"))
+
+class PartyDraft(BaseModel):
+    name: Optional[str] = Field(default=None, alias=AliasChoices("name","会社名","名称"))
+    email: Optional[EmailStr] = Field(default=None, alias=AliasChoices("email","メール"))
+    phone: Optional[str] = Field(default=None, alias=AliasChoices("phone","電話"))
+    address: Optional[str] = Field(default=None, alias=AliasChoices("address","住所"))
+    tax_id: Optional[str] = Field(default=None, alias=AliasChoices("tax_id","税番号","法人番号"))
+
+class OrderDraft(BaseModel):
+    template_id: Optional[str] = Field(default="invoice_default_v1", alias=AliasChoices("template_id","テンプレート"))
+    issue_date: Optional[date] = Field(default=None, alias=AliasChoices("issue_date","発行日"))
+    due_date: Optional[date] = Field(default=None, alias=AliasChoices("due_date","支払期日"))
+    seller: Optional[PartyDraft] = Field(default=None, alias=AliasChoices("seller","売り手","発行者"))
+    buyer: Optional[PartyDraft]  = Field(default=None, alias=AliasChoices("buyer","買い手","請求先"))
+    currency: Optional[Currency] = Field(default=None, alias=AliasChoices("currency","通貨"))
+    payment_method: Optional[PaymentMethod] = Field(default=None, alias=AliasChoices("payment_method","支払方法"))
+    items: Optional[List[OrderItemDraft]] = Field(default=None, alias=AliasChoices("items","明細"))
+    tax_rate_pct: Optional[condecimal(ge=0, le=100, max_digits=5, decimal_places=2)] = Field(default=None, alias=AliasChoices("tax_rate_pct","消費税率"))
+    shipping_fee: Optional[condecimal(ge=0, max_digits=12, decimal_places=2)] = Field(default=None, alias=AliasChoices("shipping_fee","送料"))
+    notes: Optional[str] = Field(default=None, alias=AliasChoices("notes","備考"))
+    missing_fields: Optional[List[str]] = Field(default=None, alias="missing_fields")
+
 class Party(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
