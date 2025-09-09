@@ -168,7 +168,9 @@ def to_strict_order(d: OrderDraft) -> Order:
 
 def to_order_if_complete(d: OrderDraft) -> Tuple[bool, Order | None]:
     # 还有缺失就直接 False
-    if calc_missing(d):
+    missing = calc_missing(d)
+
+    if len(missing) > 0:
         return False, None
 
     # 用字段名 dump；排除 Draft 专属字段，避免多余键影响

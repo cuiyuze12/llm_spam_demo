@@ -159,7 +159,7 @@ def order_start(req: StartReq):
             "status": "ask",
             "question": next_question(field),
             "field": field,
-            "draft": draft.model_dump(by_alias=True, exclude_none=True)
+            "draft": draft.model_dump(by_alias=True, exclude_none=True, mode="json")
         }
     except Exception as e:
         # 打印完整的 stack trace 到控制台/日志
@@ -185,13 +185,13 @@ def order_reply(req: StepReq):
                 "status": "ask",
                 "question": next_question(field),
                 "field": field,
-                "draft": draft2.model_dump(by_alias=True, exclude_none=True),
+                "draft": draft2.model_dump(by_alias=True, exclude_none=True, mode="json"),
             }
 
         # 2) 看是否已经可以生成最终订单
         done, order = to_order_if_complete(draft2)
         if done:
-            return {"status": "done", "order": order.model_dump()}
+            return {"status":"done", "order": order.model_dump(by_alias=True, mode="json")}
 
         # 3) 防御式兜底：
         #    如果 missing 为空但仍未 done，说明 calc_missing 与 to_order_if_complete 存在不一致或数据异常
@@ -199,7 +199,7 @@ def order_reply(req: StepReq):
             "status": "ask",
             "question": "入力を確認できませんでした。もう一度ご回答ください。",
             "field": req.field,  # 或者给个固定的首要字段，如 "buyer.name"
-            "draft": draft2.model_dump(by_alias=True, exclude_none=True),
+            "draft": draft2.model_dump(by_alias=True, exclude_none=True, mode="json"),
         }
 
     except Exception as e:
