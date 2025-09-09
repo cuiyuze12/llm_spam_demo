@@ -499,7 +499,7 @@ The car is very fast.</pre>
   function downloadOrder() {
     // 把你现在订单完成时的 order_id 填进来（或从页面/状态读取）
     const orderId = window.currentOrderId || '12345';
-    window.location.href = `/orders/${orderId}/pdf`;
+    window.location.href = `/api2/orders/${orderId}/pdf`;
   }
 </script>
 </body>

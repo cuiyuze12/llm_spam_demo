@@ -6,7 +6,7 @@
 <style>
   @font-face {
     font-family: 'NotoSansJP';
-    src: url('/static/fonts/NotoSansJP-Regular.otf') format('opentype');
+    src: url('fonts/NotoSansJP-Regular.otf') format('opentype');
     font-weight: normal;
     font-style: normal;
   }
@@ -135,7 +135,7 @@
       </tr>
     </thead>
     <tbody>
-      {% for it in data.items %}
+      {% for it in data['items'] %}
       <tr>
         <td>{{ it.name }}</td>
         <td>{{ it.spec }}</td>

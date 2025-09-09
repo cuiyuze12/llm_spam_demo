@@ -5,6 +5,8 @@ from weasyprint import HTML, CSS
 from io import BytesIO
 from datetime import date
 import os
+from urllib.parse import quote
+
 
 router = APIRouter()
 
@@ -88,7 +90,13 @@ def download_order_pdf(order_id: str):
     html.write_pdf(pdf_io, stylesheets=[css])
     pdf_io.seek(0)
 
-    filename = f"注文書_{order_id}.pdf"
-    return StreamingResponse(pdf_io, media_type="application/pdf", headers={
-        "Content-Disposition": f'attachment; filename="{filename}"'
-    })
+    order_id = str(order_id)  # 确保是字符串
+    ascii_name = f"order_{order_id}.pdf"
+    utf8_name = quote(f"注文書_{order_id}.pdf")  # URL 编码, 全 ASCII
+
+    headers = {
+        # RFC 5987: ASCII 回退 + UTF-8 真正文件名
+        "Content-Disposition": f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{utf8_name}"
+    }
+
+    return StreamingResponse(pdf_io, media_type="application/pdf", headers=headers)
