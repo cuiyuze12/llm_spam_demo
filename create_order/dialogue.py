@@ -178,6 +178,27 @@ def to_strict_order(d: OrderDraft) -> Order:
     # 交给严格的 Pydantic Order 校验
     return Order(**data)
 
+def _coerce_enum_like(val, EnumType, mapping: dict):
+    if val is None:
+        return None
+    # 已经是枚举 -> 直接返回
+    try:
+        from enum import Enum
+        if isinstance(val, Enum):
+            return val
+    except Exception:
+        pass
+    # 字符串归一化
+    s = str(val).strip()
+    if "." in s:
+        s = s.split(".")[-1]
+    s = s.upper()
+    s = mapping.get(s, s)
+    try:
+        return EnumType(s)   # 转成枚举实例
+    except ValueError:
+        return s             # 留给 Order 的 validator 再试
+    
 def to_order_if_complete(d: OrderDraft) -> Tuple[bool, Order | None]:
     # 还有缺失就直接 False
     missing = calc_missing(d)
@@ -192,6 +213,14 @@ def to_order_if_complete(d: OrderDraft) -> Tuple[bool, Order | None]:
         exclude={"missing_fields"}   # 关键：把 Draft 的辅助字段去掉
     )
     data.setdefault("issue_date", date.today())
+    
+    # 把两个“可能是 'Currency.JPY' 字符串”的字段归一化
+    currency_map = {"円": "JPY", "日本円": "JPY", "ドル": "USD", "ユーロ": "EUR"}
+    payment_map = {"銀行振込": "BANK_TRANSFER", "振込": "BANK_TRANSFER",
+                   "クレジットカード": "CARD", "カード": "CARD", "現金": "CASH"}
+
+    data["currency"] = _coerce_enum_like(data.get("currency"), Currency, currency_map)
+    data["payment_method"] = _coerce_enum_like(data.get("payment_method"), PaymentMethod, payment_map)
 
     try:
         order = Order(**data)  # 严格校验（含 enum + 金额 + email 等）
