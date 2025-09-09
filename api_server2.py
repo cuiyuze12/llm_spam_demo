@@ -12,7 +12,7 @@ from starlette.responses import Response
 import time
 
 from create_order.schemas import OrderDraft, Order
-from create_order.dialogue import calc_missing, next_question, apply_single_answer, to_order_if_complete
+from create_order.dialogue import calc_missing, next_question, apply_single_answer, to_order_if_complete, _normalize_draft_enums_inplace
 
 from typing import List, Optional
 
@@ -172,7 +172,9 @@ def order_reply(req: StepReq):
     后续轮次：只填当前字段，生成新的 draft；若已齐全则返回最终 order。
     """
     try:
-        draft = OrderDraft(**req.draft)
+        payload = dict(req.draft or {})
+        _normalize_draft_enums_inplace(payload)   # ✅ 先把 'Currency.JPY' -> 'JPY'
+        draft = OrderDraft(**payload)
         draft2 = apply_single_answer(draft, req.field, req.answer)
 
         # 计算缺失项

@@ -146,23 +146,16 @@ def apply_single_answer(d: OrderDraft, field: str, text: Optional[str]) -> Order
                 pass
 
     elif field == "currency":
-        code = _enum_code(t)
-        mapping = {"円": "JPY", "日本円": "JPY", "ドル": "USD", "ユーロ": "EUR"}
-        code = mapping.get(code, code)
-        try:
-            d.currency = Currency(code)   # ✅ 赋枚举实例
-        except ValueError:
-            d.currency = None
-    
+        code = _enum_code_str(t)
+        code = {"円":"JPY","日本円":"JPY","ドル":"USD","ユーロ":"EUR"}.get(code, code)
+        d.currency = code  # 这里给代码值即可，Draft 会接受；最终构造 Order 再严格校验
+
     elif field == "payment_method":
-        code = _enum_code(t)
-        mapping = {"銀行振込": "BANK_TRANSFER", "振込": "BANK_TRANSFER",
-                   "クレジットカード": "CARD", "カード": "CARD", "現金": "CASH"}
-        code = mapping.get(code, code)
-        try:
-            d.payment_method = PaymentMethod(code)  # ✅ 赋枚举实例
-        except ValueError:
-            d.payment_method = None
+        code = _enum_code_str(t)
+        code = {"銀行振込":"BANK_TRANSFER","振込":"BANK_TRANSFER",
+                "クレジットカード":"CARD","カード":"CARD","現金":"CASH"}.get(code, code)
+        d.payment_method = code
+
 
     # 返回新的 Draft（用字段名而非 alias 重建，避免键名错位）
     return OrderDraft(**d.model_dump(by_alias=False, exclude_none=True))
@@ -213,14 +206,17 @@ def to_order_if_complete(d: OrderDraft) -> Tuple[bool, Order | None]:
         exclude={"missing_fields"}   # 关键：把 Draft 的辅助字段去掉
     )
     data.setdefault("issue_date", date.today())
-    
-    # 把两个“可能是 'Currency.JPY' 字符串”的字段归一化
-    currency_map = {"円": "JPY", "日本円": "JPY", "ドル": "USD", "ユーロ": "EUR"}
-    payment_map = {"銀行振込": "BANK_TRANSFER", "振込": "BANK_TRANSFER",
-                   "クレジットカード": "CARD", "カード": "CARD", "現金": "CASH"}
 
-    data["currency"] = _coerce_enum_like(data.get("currency"), Currency, currency_map)
-    data["payment_method"] = _coerce_enum_like(data.get("payment_method"), PaymentMethod, payment_map)
+    # ✅ 最后一层再兜一次：把可能混进来的 'Currency.JPY' -> 'JPY'
+    if isinstance(data.get("currency"), str):
+        data["currency"] = _enum_code_str(data["currency"])
+    if isinstance(data.get("payment_method"), str):
+        data["payment_method"] = _enum_code_str(data["payment_method"])
+
+    # （可选）再做一次日文到代码的映射
+    data["currency"] = {"円":"JPY","日本円":"JPY","ドル":"USD","ユーロ":"EUR"}.get(data.get("currency",""), data.get("currency"))
+    data["payment_method"] = {"銀行振込":"BANK_TRANSFER","振込":"BANK_TRANSFER",
+                              "クレジットカード":"CARD","カード":"CARD","現金":"CASH"}.get(data.get("payment_method",""), data.get("payment_method"))
 
     try:
         order = Order(**data)  # 严格校验（含 enum + 金额 + email 等）
@@ -231,5 +227,29 @@ def to_order_if_complete(d: OrderDraft) -> Tuple[bool, Order | None]:
         return False, None
 
 
+# --- helpers: 归一化枚举文本 ---
+
+def _enum_code_str(s: str) -> str:
+    """把 'Currency.JPY' / 'PaymentMethod.CARD' / ' jpy ' 等规整成大写代码 'JPY' / 'CARD'。"""
+    s = (s or "").strip()
+    if "." in s:  # 'Currency.JPY' -> 'JPY'
+        s = s.split(".")[-1]
+    return s.upper()
+
+def _normalize_draft_enums_inplace(d: dict) -> dict:
+    """就地把 draft 里的 currency / payment_method 统一成 'JPY' / 'CARD' 等代码值。"""
+    if "currency" in d and isinstance(d["currency"], str):
+        s = _enum_code_str(d["currency"])
+        # 日文别名 -> 代码
+        s = {"円":"JPY","日本円":"JPY","ドル":"USD","ユーロ":"EUR"}.get(s, s)
+        d["currency"] = s
+
+    if "payment_method" in d and isinstance(d["payment_method"], str):
+        s = _enum_code_str(d["payment_method"])
+        s = {"銀行振込":"BANK_TRANSFER","振込":"BANK_TRANSFER",
+             "クレジットカード":"CARD","カード":"CARD","現金":"CASH"}.get(s, s)
+        d["payment_method"] = s
+
+    return d
 
 
