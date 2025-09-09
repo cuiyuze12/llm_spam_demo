@@ -174,19 +174,34 @@ def order_reply(req: StepReq):
     try:
         draft = OrderDraft(**req.draft)
         draft2 = apply_single_answer(draft, req.field, req.answer)
+
+        # 计算缺失项
         missing = calc_missing(draft2)
-        if not missing:
-            done, order = to_order_if_complete(draft2)
-            if done:
-                return {"status":"done", "order": order.model_dump()}
-        field = missing[0]
+
+        # 1) 还有缺失 → 继续问下一个字段
+        if missing:  # 非空才取 missing[0]
+            field = missing[0]
+            return {
+                "status": "ask",
+                "question": next_question(field),
+                "field": field,
+                "draft": draft2.model_dump(by_alias=True, exclude_none=True),
+            }
+
+        # 2) 看是否已经可以生成最终订单
+        done, order = to_order_if_complete(draft2)
+        if done:
+            return {"status": "done", "order": order.model_dump()}
+
+        # 3) 防御式兜底：
+        #    如果 missing 为空但仍未 done，说明 calc_missing 与 to_order_if_complete 存在不一致或数据异常
         return {
             "status": "ask",
-            "question": next_question(field),
-            "field": field,
-            "draft": draft2.model_dump(by_alias=True, exclude_none=True)
+            "question": "入力を確認できませんでした。もう一度ご回答ください。",
+            "field": req.field,  # 或者给个固定的首要字段，如 "buyer.name"
+            "draft": draft2.model_dump(by_alias=True, exclude_none=True),
         }
+
     except Exception as e:
-        # 打印完整的 stack trace 到控制台/日志
         traceback.print_exc()
-        raise HTTPException(500, f"更新失败: {e}")
+        raise HTTPException(status_code=500, detail=f"更新失败: {e}")
