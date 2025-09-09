@@ -1,9 +1,10 @@
 import json
+import traceback
 from typing import List, Tuple
 from .schemas import OrderDraft, Order, Currency, PaymentMethod
 from pydantic import ValidationError
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 # 定义“必填项”的最小集合（可按你的业务调整）
 REQUIRED = [
@@ -26,24 +27,72 @@ def extract_json(raw: str) -> dict:
     try:
         return json.loads(raw)
     except Exception:
+        traceback.print_exc()
         start, end = raw.find("{"), raw.rfind("}")
         if start == -1 or end == -1 or end <= start:
             raise ValueError("未找到有效的 JSON 片段")
         return json.loads(raw[start:end + 1])
 
+# 把 pydantic 的 loc 转成 "a.b[0].c" 形式
+def _format_loc(loc) -> str:
+    parts = []
+    for p in loc:
+        if isinstance(p, int):
+            # 把上一个字段名换成带索引的形式
+            if not parts:
+                parts.append(f"[{p}]")
+            else:
+                parts[-1] = f"{parts[-1]}[{p}]"
+        else:
+            parts.append(str(p))
+    return ".".join(parts)
+
 def calc_missing(d: OrderDraft) -> List[str]:
-    missing = []
-    if not (d.buyer and d.buyer.name): missing.append("buyer.name")
-    if not (d.items and len(d.items)>0):
-        missing += ["items[0].name","items[0].qty","items[0].unit_price"]
-    else:
+    """
+    利用 Order 的 pydantic 校验来“单一事实来源”地判断缺失/无效字段。
+    返回的字段路径与 UI 期望一致（buyer.name / items[0].qty 等）。
+    """
+    data = d.model_dump(by_alias=True, exclude_none=True)
+    # 与 to_order_if_complete 同步：默认 issue_date 为今天
+    data.setdefault("issue_date", date.today().isoformat())
+
+    missing_or_invalid = set()
+
+    # 1) 先让 Order 做一次严格校验；把错误映射为字段路径
+    try:
+        Order(**data)
+    except ValidationError as ve:
+        for err in ve.errors():
+            loc = err.get("loc", ())
+            if not loc:
+                continue
+            field = _format_loc(loc)
+            # 统一用“字段路径”汇总（包括缺失和类型/值错误）
+            missing_or_invalid.add(field)
+
+    # 2) 业务规则补强（如果这些也在 Order 里校验了，可以删掉这段）
+    #    - 数量 > 0
+    #    - 单价 > 0（可解析为 Decimal）
+    if d.items and len(d.items) > 0:
         it0 = d.items[0]
-        if not it0.name: missing.append("items[0].name")
-        if not it0.qty:  missing.append("items[0].qty")
-        if not it0.unit_price: missing.append("items[0].unit_price")
-    if not d.currency: missing.append("currency")
-    if not d.payment_method: missing.append("payment_method")
-    return missing
+        # qty 必须为正整数
+        if getattr(it0, "qty", None) is not None:
+            try:
+                if int(it0.qty) <= 0:
+                    missing_or_invalid.add("items[0].qty")
+            except Exception:
+                missing_or_invalid.add("items[0].qty")
+        # unit_price 必须是正数
+        if getattr(it0, "unit_price", None) is not None:
+            try:
+                if Decimal(str(it0.unit_price)) <= 0:
+                    missing_or_invalid.add("items[0].unit_price")
+            except (InvalidOperation, ValueError):
+                traceback.print_exc()
+                missing_or_invalid.add("items[0].unit_price")
+
+    # 3) 返回稳定顺序便于测试/日志
+    return sorted(missing_or_invalid)
 
 def next_question(field: str) -> str:
     # 日文提问模板
@@ -120,18 +169,23 @@ def to_strict_order(d: OrderDraft) -> Order:
     # 交给严格的 Pydantic Order 校验
     return Order(**data)
 
-def to_order_if_complete(d: OrderDraft) -> Tuple[bool, Order]:
+def to_order_if_complete(d: OrderDraft) -> Tuple[bool, Order | None]:
     """
     字段齐全则构造严格 Order，否则返回 (False, None)。
     issue_date 没填就用今天。
     """
-    if calc_missing(d): return False, None
+    # 与 calc_missing 保持一致：先看是否还有任何校验错误
+    if calc_missing(d):
+        return False, None
+
     data = d.model_dump(by_alias=True)
     data.setdefault("issue_date", date.today().isoformat())
     try:
         order = Order(**data)
         return True, order
     except ValidationError:
+        traceback.print_exc()
+        # 理论上不会走到这里，因为 calc_missing 已经踩过同样的校验
         return False, None
 
 
