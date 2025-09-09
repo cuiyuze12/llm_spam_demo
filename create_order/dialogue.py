@@ -96,6 +96,13 @@ def canonical_field(field: str) -> str:
         return "buyer.name"
     return field
 
+def _enum_code(s: str) -> str:
+    # ' Currency.JPY ' -> 'JPY'；'円' -> '円'（后面再映射）
+    s = (s or "").strip()
+    if "." in s:
+        s = s.split(".")[-1]
+    return s.upper()
+
 def apply_single_answer(d: OrderDraft, field: str, text: Optional[str]) -> OrderDraft:
     t = (text or "").strip()
     field = canonical_field(field)
@@ -139,18 +146,23 @@ def apply_single_answer(d: OrderDraft, field: str, text: Optional[str]) -> Order
                 pass
 
     elif field == "currency":
-        # 交给 Order 的 validator 最终规范也可以；这里先做一次常见映射
-        m = {"円": "JPY", "日本円": "JPY", "JPY": "JPY",
-             "USD": "USD", "ドル": "USD",
-             "EUR": "EUR", "ユーロ": "EUR"}
-        key = t.upper()
-        d.currency = m.get(key, m.get(t, t))  # 可以是 enum 名或字符串，最终由 Order 校验
-
+        code = _enum_code(t)
+        mapping = {"円": "JPY", "日本円": "JPY", "ドル": "USD", "ユーロ": "EUR"}
+        code = mapping.get(code, code)
+        try:
+            d.currency = Currency(code)   # ✅ 赋枚举实例
+        except ValueError:
+            d.currency = None
+    
     elif field == "payment_method":
-        m = {"銀行振込": "BANK_TRANSFER", "振込": "BANK_TRANSFER",
-             "クレジットカード": "CARD", "カード": "CARD",
-             "現金": "CASH", "CASH": "CASH", "CARD": "CARD", "BANK_TRANSFER": "BANK_TRANSFER"}
-        d.payment_method = m.get(t, t)
+        code = _enum_code(t)
+        mapping = {"銀行振込": "BANK_TRANSFER", "振込": "BANK_TRANSFER",
+                   "クレジットカード": "CARD", "カード": "CARD", "現金": "CASH"}
+        code = mapping.get(code, code)
+        try:
+            d.payment_method = PaymentMethod(code)  # ✅ 赋枚举实例
+        except ValueError:
+            d.payment_method = None
 
     # 返回新的 Draft（用字段名而非 alias 重建，避免键名错位）
     return OrderDraft(**d.model_dump(by_alias=False, exclude_none=True))
