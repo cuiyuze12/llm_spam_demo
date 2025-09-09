@@ -51,24 +51,25 @@ def _format_loc(loc) -> str:
 def calc_missing(d: OrderDraft) -> List[str]:
     missing = []
 
-    # 只问这些“对话必填项”（可按需要增减）
+    # seller/buyer 名称
     if not (d.seller and d.seller.name):
         missing.append("seller.name")
     if not (d.buyer and d.buyer.name):
         missing.append("buyer.name")
 
+    # items[0] 必填项（含 sku）
     if not (d.items and len(d.items) > 0):
-        missing += ["items[0].name", "items[0].qty", "items[0].unit_price"]
+        missing += ["items[0].sku", "items[0].name", "items[0].qty", "items[0].unit_price"]
     else:
         it0 = d.items[0]
-        if not it0.name:
-            missing.append("items[0].name")
+        if not it0.sku:  missing.append("items[0].sku")
+        if not it0.name: missing.append("items[0].name")
         if not it0.qty or (isinstance(it0.qty, int) and it0.qty <= 0):
             missing.append("items[0].qty")
         if not it0.unit_price:
             missing.append("items[0].unit_price")
 
-    # 你想“明确询问”的就保留；不想问就删掉（Order 里有默认值）
+    # 其他对话必填
     if not d.currency:
         missing.append("currency")
     if not d.payment_method:
@@ -170,8 +171,12 @@ def to_order_if_complete(d: OrderDraft) -> Tuple[bool, Order | None]:
     if calc_missing(d):
         return False, None
 
-    # 用字段名 dump；补默认 issue_date
-    data = d.model_dump(by_alias=False, exclude_none=True)
+    # 用字段名 dump；排除 Draft 专属字段，避免多余键影响
+    data = d.model_dump(
+        by_alias=False,
+        exclude_none=True,
+        exclude={"missing_fields"}   # 关键：把 Draft 的辅助字段去掉
+    )
     data.setdefault("issue_date", date.today())
 
     try:
