@@ -1,10 +1,11 @@
 import json
 import traceback
 from typing import List, Tuple
-from .schemas import OrderDraft, Order, Currency, PaymentMethod
+from .schemas import OrderDraft, Order, PartyDraft, OrderItemDraft, Currency, PaymentMethod
 from pydantic import ValidationError
 from datetime import date
 from decimal import Decimal, InvalidOperation
+from typing import Optional
 
 # 定义“必填项”的最小集合（可按你的业务调整）
 REQUIRED = [
@@ -48,51 +49,32 @@ def _format_loc(loc) -> str:
     return ".".join(parts)
 
 def calc_missing(d: OrderDraft) -> List[str]:
-    """
-    利用 Order 的 pydantic 校验来“单一事实来源”地判断缺失/无效字段。
-    返回的字段路径与 UI 期望一致（buyer.name / items[0].qty 等）。
-    """
-    data = d.model_dump(by_alias=True, exclude_none=True)
-    # 与 to_order_if_complete 同步：默认 issue_date 为今天
-    data.setdefault("issue_date", date.today().isoformat())
+    missing = []
 
-    missing_or_invalid = set()
+    # 只问这些“对话必填项”（可按需要增减）
+    if not (d.seller and d.seller.name):
+        missing.append("seller.name")
+    if not (d.buyer and d.buyer.name):
+        missing.append("buyer.name")
 
-    # 1) 先让 Order 做一次严格校验；把错误映射为字段路径
-    try:
-        Order(**data)
-    except ValidationError as ve:
-        for err in ve.errors():
-            loc = err.get("loc", ())
-            if not loc:
-                continue
-            field = _format_loc(loc)
-            # 统一用“字段路径”汇总（包括缺失和类型/值错误）
-            missing_or_invalid.add(field)
-
-    # 2) 业务规则补强（如果这些也在 Order 里校验了，可以删掉这段）
-    #    - 数量 > 0
-    #    - 单价 > 0（可解析为 Decimal）
-    if d.items and len(d.items) > 0:
+    if not (d.items and len(d.items) > 0):
+        missing += ["items[0].name", "items[0].qty", "items[0].unit_price"]
+    else:
         it0 = d.items[0]
-        # qty 必须为正整数
-        if getattr(it0, "qty", None) is not None:
-            try:
-                if int(it0.qty) <= 0:
-                    missing_or_invalid.add("items[0].qty")
-            except Exception:
-                missing_or_invalid.add("items[0].qty")
-        # unit_price 必须是正数
-        if getattr(it0, "unit_price", None) is not None:
-            try:
-                if Decimal(str(it0.unit_price)) <= 0:
-                    missing_or_invalid.add("items[0].unit_price")
-            except (InvalidOperation, ValueError):
-                traceback.print_exc()
-                missing_or_invalid.add("items[0].unit_price")
+        if not it0.name:
+            missing.append("items[0].name")
+        if not it0.qty or (isinstance(it0.qty, int) and it0.qty <= 0):
+            missing.append("items[0].qty")
+        if not it0.unit_price:
+            missing.append("items[0].unit_price")
 
-    # 3) 返回稳定顺序便于测试/日志
-    return sorted(missing_or_invalid)
+    # 你想“明确询问”的就保留；不想问就删掉（Order 里有默认值）
+    if not d.currency:
+        missing.append("currency")
+    if not d.payment_method:
+        missing.append("payment_method")
+
+    return missing
 
 def next_question(field: str) -> str:
     # 日文提问模板
@@ -106,57 +88,71 @@ def next_question(field: str) -> str:
     }
     return mapping.get(field, f"{field} を教えてください。")
 
-def apply_single_answer(d: OrderDraft, field: str, text: str) -> OrderDraft:
-    """
-    只更新当前询问的字段，尽量避免“模型自由发挥”。
-    这里用简单规则解析用户回答（生产中可以用一个“小范畴Prompt”，限制只返回该字段值）。
-    """
-    t = text.strip()
+def canonical_field(field: str) -> str:
+    if field == "seller":
+        return "seller.name"
+    if field == "buyer":
+        return "buyer.name"
+    return field
 
-    # 先把模型拍平成 dict，再在 dict 上安全地改
-    work = d.model_dump(by_alias=True, exclude_none=True)
+def apply_single_answer(d: OrderDraft, field: str, text: Optional[str]) -> OrderDraft:
+    t = (text or "").strip()
+    field = canonical_field(field)
 
-    # 确保结构存在（用 dict/list）
-    work.setdefault("items", [])
-    if not work["items"]:
-        work["items"].append({})
-    work.setdefault("buyer", {})
+    # 确保子模型存在（都是 *Draft）
+    if d.seller is None:
+        d.seller = PartyDraft()
+    if d.buyer is None:
+        d.buyer = PartyDraft()
+    if not d.items:
+        d.items = [OrderItemDraft()]
 
-    if field == "buyer.name":
-        work["buyer"]["name"] = t
+    # ---- 填值 ----
+    if field == "seller.name":
+        d.seller.name = t
+
+    elif field == "buyer.name":
+        d.buyer.name = t
 
     elif field == "items[0].name":
-        work["items"][0]["name"] = t
+        d.items[0].name = t
 
     elif field == "items[0].qty":
-        try:
-            qty = int(t.replace("個", "").replace("台", "").strip())
-            if qty > 0:
-                work["items"][0]["qty"] = qty
-        except:
-            pass
+        # 允许 “5個”“3台” 等：提取数字
+        digits = "".join(ch for ch in t if ch.isdigit())
+        if digits:
+            try:
+                q = int(digits)
+                if q > 0:
+                    d.items[0].qty = q
+            except:
+                pass
 
     elif field == "items[0].unit_price":
-        # 只提取数字与小数点
+        # 允许 “8,000円” “8000.00” 等：提取数字和小数点
         digits = "".join(ch for ch in t if ch.isdigit() or ch == ".")
         if digits:
-            work["items"][0]["unit_price"] = str(Decimal(digits))
+            try:
+                d.items[0].unit_price = Decimal(digits)
+            except:
+                pass
 
     elif field == "currency":
+        # 交给 Order 的 validator 最终规范也可以；这里先做一次常见映射
         m = {"円": "JPY", "日本円": "JPY", "JPY": "JPY",
              "USD": "USD", "ドル": "USD",
              "EUR": "EUR", "ユーロ": "EUR"}
-        key = t.upper() if t and t.upper() in m else t
-        work["currency"] = m.get(key)
+        key = t.upper()
+        d.currency = m.get(key, m.get(t, t))  # 可以是 enum 名或字符串，最终由 Order 校验
 
     elif field == "payment_method":
         m = {"銀行振込": "BANK_TRANSFER", "振込": "BANK_TRANSFER",
              "クレジットカード": "CARD", "カード": "CARD",
-             "現金": "CASH"}
-        work["payment_method"] = m.get(t)
+             "現金": "CASH", "CASH": "CASH", "CARD": "CARD", "BANK_TRANSFER": "BANK_TRANSFER"}
+        d.payment_method = m.get(t, t)
 
-    # 最后再重建 Pydantic 模型
-    return OrderDraft(**work)
+    # 返回新的 Draft（用字段名而非 alias 重建，避免键名错位）
+    return OrderDraft(**d.model_dump(by_alias=False, exclude_none=True))
 
 def to_strict_order(d: OrderDraft) -> Order:
     """
@@ -170,22 +166,20 @@ def to_strict_order(d: OrderDraft) -> Order:
     return Order(**data)
 
 def to_order_if_complete(d: OrderDraft) -> Tuple[bool, Order | None]:
-    """
-    字段齐全则构造严格 Order，否则返回 (False, None)。
-    issue_date 没填就用今天。
-    """
-    # 与 calc_missing 保持一致：先看是否还有任何校验错误
+    # 还有缺失就直接 False
     if calc_missing(d):
         return False, None
 
-    data = d.model_dump(by_alias=True)
-    data.setdefault("issue_date", date.today().isoformat())
+    # 用字段名 dump；补默认 issue_date
+    data = d.model_dump(by_alias=False, exclude_none=True)
+    data.setdefault("issue_date", date.today())
+
     try:
-        order = Order(**data)
+        order = Order(**data)  # 严格校验（含 enum + 金额 + email 等）
         return True, order
     except ValidationError:
         traceback.print_exc()
-        # 理论上不会走到这里，因为 calc_missing 已经踩过同样的校验
+        # 理论上这里不会触发；如果触发，说明 schema 约束比“对话必填”更严格
         return False, None
 
 
