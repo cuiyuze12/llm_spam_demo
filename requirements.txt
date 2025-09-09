@@ -19,3 +19,6 @@ python-multipart==0.0.20
 # For strict data validation (日本語キー alias + JSON校正用)
 pydantic[email]>=2,<3
 
+# For weasyprint (PDF生成)
+weasyprint==66.0
+

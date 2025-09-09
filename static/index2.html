@@ -297,6 +297,7 @@ The car is very fast.</pre>
     <button class="btn-secondary" onclick="replyOrderChat()">送信</button>
   </div>
   <pre id="order_chat_result" class="output" style="display:none;"></pre>
+  <button onclick="downloadOrder()">注文書（PDF）をダウンロード</button>
 </div>
 <!-- ▲▲▲ 新規コンテンツここまで ▲▲▲ -->
 
@@ -493,6 +494,12 @@ The car is very fast.</pre>
     } else {
       log.textContent = 'エラー：' + JSON.stringify(data);
     }
+  }
+  
+  function downloadOrder() {
+    // 把你现在订单完成时的 order_id 填进来（或从页面/状态读取）
+    const orderId = window.currentOrderId || '12345';
+    window.location.href = `/orders/${orderId}/pdf`;
   }
 </script>
 </body>

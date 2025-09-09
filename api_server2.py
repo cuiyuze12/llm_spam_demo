@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from create_order.llm_parser import parse_order_from_text
+from create_order.order_pdf import router as order_pdf_router
 from rag.rag_retriever import real_rag_answer
 from agent.agent_chatter import run_bedrock_agent
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -17,6 +18,7 @@ from create_order.dialogue import calc_missing, next_question, apply_single_answ
 from typing import List, Optional
 
 app = FastAPI()
+app.include_router(order_pdf_router)
 
 # ========== 配置 ==========
 RATE_LIMIT = 60  # 每个 IP 每分钟最多请求次数

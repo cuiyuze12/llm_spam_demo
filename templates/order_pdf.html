@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>注文書</title>
+<style>
+  @font-face {
+    font-family: 'NotoSansJP';
+    src: url('/static/fonts/NotoSansJP-Regular.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+  }
+  html, body {
+    font-family: 'NotoSansJP', sans-serif;
+    font-size: 12px;
+    color: #222;
+  }
+  @page {
+    size: A4;
+    margin: 18mm 14mm;
+    @bottom-center {
+      content: "ページ " counter(page) " / " counter(pages);
+      font-size: 10px;
+      color: #666;
+    }
+  }
+  h1 {
+    text-align: center;
+    letter-spacing: .2em;
+    margin: 0 0 10px;
+    font-size: 20px;
+  }
+  .meta {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .box {
+    border: 1px solid #aaa;
+    padding: 8px 10px;
+    border-radius: 4px;
+  }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .kv p { margin: 2px 0; }
+  .seal {
+    border: 1px dashed #999;
+    width: 80px; height: 80px;
+    display: inline-block;
+    vertical-align: middle;
+    text-align: center; line-height: 80px;
+    color: #999; font-size: 12px;
+    margin-left: 8px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 6px;
+  }
+  th, td {
+    border: 1px solid #bbb;
+    padding: 6px 8px;
+  }
+  th {
+    background: #f4f6f8;
+    text-align: center;
+  }
+  td.num {
+    text-align: right;
+    white-space: nowrap;
+  }
+  .tfoot td {
+    border: none;
+    padding: 2px 0;
+  }
+  .tfoot .label { text-align: right; padding-right: 8px; }
+  .remarks {
+    margin-top: 12px;
+  }
+  .small { color: #666; font-size: 11px; }
+</style>
+</head>
+<body>
+
+  <h1>注文書</h1>
+
+  <div class="meta">
+    <div>
+      <div><strong>注文番号：</strong>{{ data.order_id }}</div>
+      <div><strong>注文日：</strong>{{ data.order_date }}</div>
+    </div>
+    <div class="kv">
+      <div><strong>発行者：</strong>{{ data.issuer.company }}</div>
+      <div>{{ data.issuer.postal }} {{ data.issuer.address }}</div>
+      <div>TEL：{{ data.issuer.tel }}　/　Email：{{ data.issuer.email }}</div>
+      {% if data.issuer.seal_box %}
+      <div class="seal">印</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="box">
+      <strong>発注者（請求先）</strong>
+      <div class="kv">
+        <p>{{ data.buyer.name }}（{{ data.buyer.department }}）</p>
+        <p>ご担当：{{ data.buyer.person }}</p>
+        <p>{{ data.buyer.postal }} {{ data.buyer.address }}</p>
+        <p>TEL：{{ data.buyer.tel }}　/　Email：{{ data.buyer.email }}</p>
+      </div>
+    </div>
+    <div class="box">
+      <strong>納入先（送付先）</strong>
+      <div class="kv">
+        <p>{{ data.ship_to.name }}</p>
+        <p>{{ data.ship_to.postal }} {{ data.ship_to.address }}</p>
+        <p>TEL：{{ data.ship_to.tel }}</p>
+      </div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 36%;">品目</th>
+        <th>仕様</th>
+        <th style="width: 8%;">数量</th>
+        <th style="width: 8%;">単位</th>
+        <th style="width: 15%;">単価</th>
+        <th style="width: 15%;">金額</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in data.items %}
+      <tr>
+        <td>{{ it.name }}</td>
+        <td>{{ it.spec }}</td>
+        <td class="num">{{ it.qty }}</td>
+        <td class="num">{{ it.unit }}</td>
+        <td class="num">¥{{ "{:,}".format(it.unit_price) }}</td>
+        <td class="num">¥{{ "{:,}".format(it.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <table class="tfoot" style="width:100%; margin-top: 8px;">
+    <tr>
+      <td class="label" style="width:85%;">小計</td>
+      <td class="num">¥{{ "{:,}".format(data.subtotal) }}</td>
+    </tr>
+    <tr>
+      <td class="label">消費税（{{ (data.tax_rate*100)|round(0)|int }}%）</td>
+      <td class="num">¥{{ "{:,}".format(data.tax) }}</td>
+    </tr>
+    <tr>
+      <td class="label"><strong>合計</strong></td>
+      <td class="num"><strong>¥{{ "{:,}".format(data.total) }}</strong></td>
+    </tr>
+  </table>
+
+  <div class="remarks">
+    <strong>備考：</strong>
+    <div class="small">{{ data.remarks }}</div>
+  </div>
+
+  <p class="small" style="margin-top: 12px;">
+    通貨：{{ data.currency }}　／　本書は発注意思を示す文書です。ご手配のほどよろしくお願いいたします。
+  </p>
+
+</body>
+</html>
