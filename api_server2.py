@@ -1,3 +1,4 @@
+import traceback
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -132,6 +133,11 @@ def create_order(req: OrderRequest):
         # Pydanticモデルのdictを返すと自動でJSONシリアライズされる
         return order.model_dump()
     except Exception as e:
+        # 打印完整的 stack trace 到控制台/日志
+        traceback.print_exc()
+        # 如果你想把堆栈信息作为字符串保存，可以这样：
+        # error_trace = traceback.format_exc()
+        # print(error_trace)
         raise HTTPException(status_code=500, detail=f"注文書生成に失敗しました: {str(e)}")
 
 @app.post("/agent/order/start")
@@ -156,6 +162,8 @@ def order_start(req: StartReq):
             "draft": draft.model_dump(by_alias=True, exclude_none=True)
         }
     except Exception as e:
+        # 打印完整的 stack trace 到控制台/日志
+        traceback.print_exc()
         raise HTTPException(500, f"解析失败: {e}")
 
 @app.post("/agent/order/reply")
@@ -179,4 +187,6 @@ def order_reply(req: StepReq):
             "draft": draft2.model_dump(by_alias=True, exclude_none=True)
         }
     except Exception as e:
+        # 打印完整的 stack trace 到控制台/日志
+        traceback.print_exc()
         raise HTTPException(500, f"更新失败: {e}")

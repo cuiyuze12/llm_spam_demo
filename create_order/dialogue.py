@@ -1,3 +1,4 @@
+import json
 from typing import List, Tuple
 from .schemas import OrderDraft, Order, Currency, PaymentMethod
 from pydantic import ValidationError
@@ -63,34 +64,50 @@ def apply_single_answer(d: OrderDraft, field: str, text: str) -> OrderDraft:
     """
     t = text.strip()
 
-    # 初始化 items
-    if (not d.items) or len(d.items)==0:
-        d.items = [{}]  # 临时结构，pydantic 会在再次构造时整理
+    # 先把模型拍平成 dict，再在 dict 上安全地改
+    work = d.model_dump(by_alias=True, exclude_none=True)
 
-    # 简单规则填充
+    # 确保结构存在（用 dict/list）
+    work.setdefault("items", [])
+    if not work["items"]:
+        work["items"].append({})
+    work.setdefault("buyer", {})
+
     if field == "buyer.name":
-        d.buyer = d.buyer or {}
-        d.buyer["name"] = t
+        work["buyer"]["name"] = t
+
     elif field == "items[0].name":
-        d.items[0]["name"] = t
+        work["items"][0]["name"] = t
+
     elif field == "items[0].qty":
         try:
-            qty = int(t.replace("個","").replace("台","").strip())
-            if qty>0: d.items[0]["qty"] = qty
-        except: pass
+            qty = int(t.replace("個", "").replace("台", "").strip())
+            if qty > 0:
+                work["items"][0]["qty"] = qty
+        except:
+            pass
+
     elif field == "items[0].unit_price":
-        # 只提取数字部分
-        digits = "".join(ch for ch in t if ch.isdigit() or ch==".")
+        # 只提取数字与小数点
+        digits = "".join(ch for ch in t if ch.isdigit() or ch == ".")
         if digits:
-            d.items[0]["unit_price"] = str(Decimal(digits))
+            work["items"][0]["unit_price"] = str(Decimal(digits))
+
     elif field == "currency":
-        m = {"円":"JPY","日本円":"JPY","JPY":"JPY","USD":"USD","ドル":"USD","EUR":"EUR","ユーロ":"EUR"}
-        d.currency = m.get(t.upper(), m.get(t, None))
+        m = {"円": "JPY", "日本円": "JPY", "JPY": "JPY",
+             "USD": "USD", "ドル": "USD",
+             "EUR": "EUR", "ユーロ": "EUR"}
+        key = t.upper() if t and t.upper() in m else t
+        work["currency"] = m.get(key)
+
     elif field == "payment_method":
-        m = {"銀行振込":"BANK_TRANSFER","振込":"BANK_TRANSFER",
-             "クレジットカード":"CARD","カード":"CARD","現金":"CASH"}
-        d.payment_method = m.get(t, None)
-    return OrderDraft(**d.model_dump(by_alias=True, exclude_none=True))
+        m = {"銀行振込": "BANK_TRANSFER", "振込": "BANK_TRANSFER",
+             "クレジットカード": "CARD", "カード": "CARD",
+             "現金": "CASH"}
+        work["payment_method"] = m.get(t)
+
+    # 最后再重建 Pydantic 模型
+    return OrderDraft(**work)
 
 def to_strict_order(d: OrderDraft) -> Order:
     """

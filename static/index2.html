@@ -302,7 +302,7 @@ The car is very fast.</pre>
 
 <script>
   // ===== 設定 =====
-  const ORDER_API = '/agent/order/create'; // ← FastAPI ルート。必要に応じて変更してください。
+  const ORDER_API = '/api2/agent/order/create'; // ← FastAPI ルート。必要に応じて変更してください。
 
   function switchTab(tabName) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -446,7 +446,7 @@ The car is very fast.</pre>
     if (!text) { log.textContent = '入力が空です。'; return; }
     log.textContent = '解析中...';
 
-    const res = await fetch('/agent/order/start', {
+    const res = await fetch('/api2/agent/order/start', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ text, template_id: 'invoice_default_v1' })
     });
@@ -474,7 +474,7 @@ The car is very fast.</pre>
 
     log.textContent = '更新中...';
 
-    const res = await fetch('/agent/order/reply', {
+    const res = await fetch('/api2/agent/order/reply', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ draft: orderDraft, field: currentField, answer: ans })
     });
