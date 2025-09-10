@@ -122,6 +122,9 @@ def apply_single_answer(d: OrderDraft, field: str, text: Optional[str]) -> Order
     elif field == "buyer.name":
         d.buyer.name = t
 
+    elif field == "items[0].sku":
+        d.items[0].sku = t
+        
     elif field == "items[0].name":
         d.items[0].name = t
 

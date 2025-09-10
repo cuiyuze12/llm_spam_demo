@@ -496,11 +496,65 @@ The car is very fast.</pre>
     }
   }
   
-  function downloadOrder() {
-    // 把你现在订单完成时的 order_id 填进来（或从页面/状态读取）
-    const orderId = window.currentOrderId || '12345';
-    window.location.href = `/api2/orders/${orderId}/pdf`;
+  async function downloadOrder() {
+    // 1) 从你的页面状态里拿订单对象 —— 这里给个示例对象
+    //    实际项目中你应当从表单/全局状态里组装这个 order。
+    const order = window.currentOrder || {
+      order_id: "A-20250910-001",
+      date: new Date().toISOString().slice(0,10),
+      buyer: { name: "株式会社テスト", address: "東京都千代田区1-2-3", contact: "03-1234-5678" },
+      seller: { name: "Wonderlusia Inc.", address: "Tokyo", contact: "info@wonderlusia.site" },
+      items: [
+        { name: "LLM Demo サブスク(1年)", qty: 1, unit_price: 120000, unit: "式" },
+        { name: "RAG セットアップ", qty: 1, unit_price: 80000, unit: "件" },
+      ],
+      currency: "JPY",
+      notes: "請求書ベース。支払条件：月末締め翌月末現金払い。"
+    };
+
+    try {
+      const resp = await fetch('/api2/orders/pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+          // 如果你有 CSRF，需要在这里加上 X-CSRF-Token 之类
+        },
+        body: JSON.stringify(order),
+      });
+
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => '');
+        throw new Error(`Server error ${resp.status}: ${text}`);
+      }
+
+      // 2) 从响应头里取文件名（后端会设置 Content-Disposition）
+      const cd = resp.headers.get('Content-Disposition') || '';
+      let filename = 'order.pdf';
+      const match = cd.match(/filename\*?=(?:UTF-8'')?([^;]+)/i);
+      if (match) {
+        filename = decodeURIComponent(match[1].replace(/"/g, ''));
+      }
+
+      // 3) Blob -> 下载
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert('PDF生成に失敗しました。もう一度お試しください。');
+    }
   }
+  // function downloadOrder() {
+  //   // 把你现在订单完成时的 order_id 填进来（或从页面/状态读取）
+  //   const orderId = window.currentOrderId || '12345';
+  //   window.location.href = `/api2/orders/${orderId}/pdf`;
+  // }
 </script>
 </body>
 </html>

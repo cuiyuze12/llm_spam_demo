@@ -129,7 +129,6 @@
         <th style="width: 36%;">品目</th>
         <th>仕様</th>
         <th style="width: 8%;">数量</th>
-        <th style="width: 8%;">単位</th>
         <th style="width: 15%;">単価</th>
         <th style="width: 15%;">金額</th>
       </tr>
@@ -140,7 +139,6 @@
         <td>{{ it.name }}</td>
         <td>{{ it.spec }}</td>
         <td class="num">{{ it.qty }}</td>
-        <td class="num">{{ it.unit }}</td>
         <td class="num">¥{{ "{:,}".format(it.unit_price) }}</td>
         <td class="num">¥{{ "{:,}".format(it.amount) }}</td>
       </tr>

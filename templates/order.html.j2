@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>注文書 {{ order.order_id }}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Noto Sans JP", sans-serif; font-size: 12px; }
+    h1 { font-size: 20px; margin: 0 0 10px; }
+    .row { display: flex; justify-content: space-between; }
+    .box { border: 1px solid #333; padding: 8px; margin-bottom: 8px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th, td { border: 1px solid #999; padding: 6px; text-align: left; }
+    tfoot td { font-weight: bold; }
+    .small { font-size: 11px; color: #555; }
+  </style>
+</head>
+<body>
+  <h1>注文書</h1>
+  <div class="row">
+    <div class="box" style="width:49%">
+      <div><strong>注文番号:</strong> {{ order.order_id }}</div>
+      <div><strong>注文日:</strong> {{ order.date }}</div>
+    </div>
+    <div class="box" style="width:49%">
+      <div><strong>通貨:</strong> {{ order.currency }}</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="box" style="width:49%">
+      <div><strong>買い手:</strong> {{ order.buyer.name }}</div>
+      {% if order.buyer.address %}<div class="small">{{ order.buyer.address }}</div>{% endif %}
+      {% if order.buyer.contact %}<div class="small">{{ order.buyer.contact }}</div>{% endif %}
+    </div>
+    <div class="box" style="width:49%">
+      <div><strong>売り手:</strong> {{ order.seller.name }}</div>
+      {% if order.seller.address %}<div class="small">{{ order.seller.address }}</div>{% endif %}
+      {% if order.seller.contact %}<div class="small">{{ order.seller.contact }}</div>{% endif %}
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:50%">品目</th>
+        <th style="width:10%">数量</th>
+        <th style="width:20%">単価</th>
+        <th style="width:20%">金額</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set subtotal = 0 %}
+      {% for it in order.items %}
+      {% set line = it.qty * it.unit_price %}
+      {% set subtotal = subtotal + line %}
+      <tr>
+        <td>{{ it.name }}{% if it.unit %}（{{ it.unit }}）{% endif %}</td>
+        <td>{{ '%.2f'|format(it.qty) }}</td>
+        <td>{{ '{:,.0f}'.format(it.unit_price) }}</td>
+        <td>{{ '{:,.0f}'.format(line) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3" style="text-align:right">小計</td>
+        <td>{{ '{:,.0f}'.format(subtotal) }}</td>
+      </tr>
+      <!-- 需要含税/送料可在这里加 -->
+    </tfoot>
+  </table>
+
+  {% if order.notes %}
+  <div class="box">
+    <strong>備考：</strong><br>
+    <div class="small">{{ order.notes }}</div>
+  </div>
+  {% endif %}
+</body>
+</html>
