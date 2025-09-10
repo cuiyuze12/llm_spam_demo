@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse, Response
 from fastapi.encoders import jsonable_encoder
 from starlette.concurrency import run_in_threadpool
@@ -114,7 +114,52 @@ def download_order_pdf(order_id: str):
 
 
 @router.post("/orders/pdf")
-async def create_order_pdf(order: Order):
+async def create_order_pdf(request: Request):
+    data = get_order_data(order_id)
+    if not data:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # 金額計算（必要に応じてあなたのロジックに置き換え）
+    for it in data["items"]:
+        it["amount"] = it["qty"] * it["unit_price"]
+    subtotal = sum(it["amount"] for it in data["items"])
+    tax = int(round(subtotal * data["tax_rate"]))
+    total = subtotal + tax
+
+    data["subtotal"] = subtotal
+    data["tax"] = tax
+    data["total"] = total
+
+    template = jinja_env.get_template("order_pdf.html")
+    html_str = template.render(data=data)
+
+    # base_url 指定で相対パスの静的ファイル（字体/CSS/图片）を解決
+    base_url = STATIC_DIR  # 让模板里 /static/... 能被找到。也可以用项目根目录
+    html = HTML(string=html_str, base_url=base_url)
+
+    # 可选：外部 CSS
+    css = CSS(string="""
+      @page { size: A4; margin: 18mm 14mm; }
+    """)
+
+    pdf_io = BytesIO()
+    html.write_pdf(pdf_io, stylesheets=[css])
+    pdf_io.seek(0)
+
+    order_id = str(order_id)  # 确保是字符串
+    ascii_name = f"order_{order_id}.pdf"
+    utf8_name = quote(f"注文書_{order_id}.pdf")  # URL 编码, 全 ASCII
+
+    headers = {
+        # RFC 5987: ASCII 回退 + UTF-8 真正文件名
+        "Content-Disposition": f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{utf8_name}"
+    }
+
+    return StreamingResponse(pdf_io, media_type="application/pdf", headers=headers)
+
+async def create_order_pdf2_backup(request: Request):
+    order = get_order_data("12234")
+
     # 1) 渲染 HTML
     try:
         template = env.get_template("order.html.j2")

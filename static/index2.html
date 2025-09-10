@@ -101,6 +101,8 @@
       padding-left: 20px;
       font-size: 14px;
     }
+    
+    .btn[disabled] { opacity: 0.6; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -297,7 +299,11 @@ The car is very fast.</pre>
     <button class="btn-secondary" onclick="replyOrderChat()">送信</button>
   </div>
   <pre id="order_chat_result" class="output" style="display:none;"></pre>
-  <button onclick="downloadOrder()">注文書（PDF）をダウンロード</button>
+  <button id="btn-download" onclick="downloadOrder()" class="btn">注文書（PDF）をダウンロード</button>
+  <div id="dl-status" style="display:none; margin-top:8px;">
+  <span id="dl-text">生成中...</span>
+  <progress id="dl-progress" value="0" max="1" style="width:240px; vertical-align:middle;"></progress>
+</div>
 </div>
 <!-- ▲▲▲ 新規コンテンツここまで ▲▲▲ -->
 
@@ -497,6 +503,19 @@ The car is very fast.</pre>
   }
   
   async function downloadOrder() {
+    const btn = document.getElementById('btn-download');
+    const panel = document.getElementById('dl-status');
+    const text = document.getElementById('dl-text');
+    const bar  = document.getElementById('dl-progress');
+
+    const ctrl = new AbortController();
+    const timeoutMs = 120000; // 可选：超时取消（120秒）
+    const timeoutId = setTimeout(() => ctrl.abort(), timeoutMs);
+
+    // UI: 进入loading
+    setLoading(true);
+
+
     // 1) 从你的页面状态里拿订单对象 —— 这里给个示例对象
     //    实际项目中你应当从表单/全局状态里组装这个 order。
     const order = window.currentOrder || {
@@ -512,31 +531,60 @@ The car is very fast.</pre>
       notes: "請求書ベース。支払条件：月末締め翌月末現金払い。"
     };
 
+
     try {
       const resp = await fetch('/api2/orders/pdf', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-          // 如果你有 CSRF，需要在这里加上 X-CSRF-Token 之类
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(order),
+        signal: ctrl.signal
       });
 
       if (!resp.ok) {
-        const text = await resp.text().catch(() => '');
-        throw new Error(`Server error ${resp.status}: ${text}`);
+        // 尝试读取错误详情
+        let msg = `${resp.status} ${resp.statusText}`;
+        try {
+          const err = await resp.json();
+          if (err?.detail) msg += `\n${(typeof err.detail === 'string') ? err.detail : JSON.stringify(err.detail)}`;
+        } catch (_) {}
+        throw new Error(msg);
       }
 
-      // 2) 从响应头里取文件名（后端会设置 Content-Disposition）
+      // 从响应头取文件名（Content-Disposition）
       const cd = resp.headers.get('Content-Disposition') || '';
       let filename = 'order.pdf';
-      const match = cd.match(/filename\*?=(?:UTF-8'')?([^;]+)/i);
-      if (match) {
-        filename = decodeURIComponent(match[1].replace(/"/g, ''));
+      const m = cd.match(/filename\*?=(?:UTF-8'')?([^;]+)/i);
+      if (m) filename = decodeURIComponent(m[1].replace(/"/g, ''));
+
+      // 如果支持流 & 有 Content-Length 就显示进度
+      const total = Number(resp.headers.get('Content-Length')) || 0;
+
+      let blob;
+      if (resp.body && 'getReader' in resp.body && total > 0) {
+        const reader = resp.body.getReader();
+        const chunks = [];
+        let received = 0;
+        text.textContent = 'ダウンロード中...';
+        bar.removeAttribute('hidden');
+        bar.max = 1;
+        bar.value = 0;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          received += value.length;
+          bar.value = received / total; // 更新进度条
+        }
+        blob = new Blob(chunks, { type: 'application/pdf' });
+      } else {
+        // 退化处理：无法测量进度（例如无Content-Length）
+        text.textContent = 'ダウンロード中...';
+        bar.setAttribute('hidden', 'hidden');
+        blob = await resp.blob();
       }
 
-      // 3) Blob -> 下载
-      const blob = await resp.blob();
+      // 触发保存
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -545,9 +593,34 @@ The car is very fast.</pre>
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+
+      // 可选：成功提示
+      text.textContent = '完了';
+      setTimeout(() => setLoading(false), 600); // 稍停一下再恢复
     } catch (err) {
       console.error(err);
-      alert('PDF生成に失敗しました。もう一度お試しください。');
+      text.textContent = '失敗しました';
+      alert('PDFの生成/ダウンロードに失敗しました。\n' + (err?.message || err));
+      setLoading(false);
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+  
+  function setLoading(loading) {
+    if (loading) {
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+      panel.style.display = 'block';
+      text.textContent = '生成中...';
+      bar.removeAttribute('hidden');
+      bar.value = 0;
+    } else {
+      btn.disabled = false;
+      btn.removeAttribute('aria-busy');
+      panel.style.display = 'none';
+      text.textContent = '';
+      bar.value = 0;
     }
   }
   // function downloadOrder() {
