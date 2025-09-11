@@ -154,7 +154,7 @@ def order_reply(req: StepReq):
     """
     try:
         payload = dict(req.draft or {})
-        _normalize_draft_enums_inplace(payload)   # ✅ 先把 'Currency.JPY' -> 'JPY'
+        
         draft = OrderDraft(**payload)
         draft2 = apply_single_answer(draft, req.field, req.answer)
 

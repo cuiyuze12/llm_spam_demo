@@ -37,12 +37,17 @@
     .content.active {
       display: block;
     }
-    input[type="text"] {
-      width: 80%;
+    /* 统一表单控件样式 */
+    input[type="text"],
+    textarea,
+    select {
+      width: 80%;           /* 或者 100%，看你想要的宽度 */
+      max-width: 100%;
       padding: 10px;
       margin: 10px 0;
       border: 1px solid #ccc;
       border-radius: 4px;
+      box-sizing: border-box;
     }
     button {
       padding: 10px 20px;
@@ -122,7 +127,7 @@
   <div class="tab" onclick="switchTab('rag')">自作RAG</div>
   <div class="tab" onclick="switchTab('agent')">自作AIエージェント</div>
   <!-- ▼▼▼ 新規タブ：注文書生成 ▼▼▼ -->
-  <div class="tab" onclick="switchTab('order')">注文書生成（JSON）</div>
+  <div class="tab" onclick="switchTab('order')">発注AIエージェント</div>
   <!-- ▲▲▲ 新規タブここまで ▲▲▲ -->
 </div>
 
