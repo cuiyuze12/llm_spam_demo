@@ -7,6 +7,23 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Optional
 
+def extract_json(raw: str) -> dict:
+    """
+    尝试从模型输出里提取 JSON：
+    1) 先直接 json.loads
+    2) 失败则截取第一个 '{' 到最后一个 '}' 的片段再 loads
+    """
+    if raw is None:
+        raise ValueError("LLM 返回为空")
+    try:
+        return json.loads(raw)
+    except Exception:
+        traceback.print_exc()
+        start, end = raw.find("{"), raw.rfind("}")
+        if start == -1 or end == -1 or end <= start:
+            raise ValueError("未找到有效的 JSON 片段")
+        return json.loads(raw[start:end + 1])
+    
 def calc_missing(d: OrderDraft) -> List[str]:
     missing = []
 
