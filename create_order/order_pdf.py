@@ -7,6 +7,7 @@ from weasyprint import HTML, CSS
 from pathlib import Path
 from io import BytesIO
 from datetime import date
+from decimal import Decimal, ROUND_HALF_UP, getcontext
 import os
 from urllib.parse import quote
 from .schemas import Order
@@ -65,6 +66,19 @@ jinja_env = Environment(
     autoescape=select_autoescape(["html", "xml"])
 )
 
+getcontext().prec = 28  # 充足精度
+
+def to_decimal(x) -> Decimal:
+    # 任何输入都转成 Decimal，避免 float 误差
+    if x is None:
+        return Decimal("0")
+    # 用 str 包一层，防止 float 直接转 Decimal 带来二进制误差
+    return Decimal(str(x))
+
+def money_round(x: Decimal) -> Decimal:
+    # 按四舍五入到最小货币单位（JPY 可用到整数；若是小数货币，可用 '0.01'）
+    return x.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+
 @router.get("/orders/{order_id}/pdf")
 def download_order_pdf(order_id: str):
     data = get_order_data(order_id)
@@ -74,8 +88,8 @@ def download_order_pdf(order_id: str):
     # 金額計算（必要に応じてあなたのロジックに置き換え）
     for it in data["items"]:
         it["amount"] = it["qty"] * it["unit_price"]
-    subtotal = sum(it["amount"] for it in data["items"])
-    tax = int(round(subtotal * data["tax_rate"]))
+    subtotal = sum((to_decimal(it["amount"]) for it in data["items"]), Decimal("0"))
+    tax = int(round(subtotal * to_decimal(data["tax_rate"])))
     total = subtotal + tax
 
     data["subtotal"] = subtotal
