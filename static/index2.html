@@ -515,28 +515,38 @@ The car is very fast.</pre>
     // UI: 进入loading
     setLoading(true);
 
+    const rawText = document.getElementById('order_chat_result').textContent;
+
+    let payload;
+    try {
+      payload = JSON.parse(rawText);   // 转成对象
+    } catch (e) {
+      console.error("不是合法的 JSON:", e);
+      alert("订单数据不是合法 JSON");
+      return;
+    }
 
     // 1) 从你的页面状态里拿订单对象 —— 这里给个示例对象
     //    实际项目中你应当从表单/全局状态里组装这个 order。
-    const order = window.currentOrder || {
-      order_id: "A-20250910-001",
-      date: new Date().toISOString().slice(0,10),
-      buyer: { name: "株式会社テスト", address: "東京都千代田区1-2-3", contact: "03-1234-5678" },
-      seller: { name: "Wonderlusia Inc.", address: "Tokyo", contact: "info@wonderlusia.site" },
-      items: [
-        { name: "LLM Demo サブスク(1年)", qty: 1, unit_price: 120000, unit: "式" },
-        { name: "RAG セットアップ", qty: 1, unit_price: 80000, unit: "件" },
-      ],
-      currency: "JPY",
-      notes: "請求書ベース。支払条件：月末締め翌月末現金払い。"
-    };
+    // const order = window.currentOrder || {
+    //   order_id: "A-20250910-001",
+    //   date: new Date().toISOString().slice(0,10),
+    //   buyer: { name: "株式会社テスト", address: "東京都千代田区1-2-3", contact: "03-1234-5678" },
+    //   seller: { name: "Wonderlusia Inc.", address: "Tokyo", contact: "info@wonderlusia.site" },
+    //   items: [
+    //     { name: "LLM Demo サブスク(1年)", qty: 1, unit_price: 120000, unit: "式" },
+    //     { name: "RAG セットアップ", qty: 1, unit_price: 80000, unit: "件" },
+    //   ],
+    //   currency: "JPY",
+    //   notes: "請求書ベース。支払条件：月末締め翌月末現金払い。"
+    // };
 
 
     try {
       const resp = await fetch('/api2/orders/pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(order),
+        body: JSON.stringify(payload),
         signal: ctrl.signal
       });
 
@@ -605,24 +615,25 @@ The car is very fast.</pre>
     } finally {
       clearTimeout(timeoutId);
     }
-  }
-  
-  function setLoading(loading) {
-    if (loading) {
-      btn.disabled = true;
-      btn.setAttribute('aria-busy', 'true');
-      panel.style.display = 'block';
-      text.textContent = '生成中...';
-      bar.removeAttribute('hidden');
-      bar.value = 0;
-    } else {
-      btn.disabled = false;
-      btn.removeAttribute('aria-busy');
-      panel.style.display = 'none';
-      text.textContent = '';
-      bar.value = 0;
+
+    function setLoading(loading) {
+      if (loading) {
+        btn.disabled = true;
+        btn.setAttribute('aria-busy', 'true');
+        panel.style.display = 'block';
+        text.textContent = '生成中...';
+        bar.removeAttribute('hidden');
+        bar.value = 0;
+      } else {
+        btn.disabled = false;
+        btn.removeAttribute('aria-busy');
+        panel.style.display = 'none';
+        text.textContent = '';
+        bar.value = 0;
+      }
     }
   }
+  
   // function downloadOrder() {
   //   // 把你现在订单完成时的 order_id 填进来（或从页面/状态读取）
   //   const orderId = window.currentOrderId || '12345';

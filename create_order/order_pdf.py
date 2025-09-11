@@ -18,13 +18,13 @@ USE_WEASYPRINT = True  # 如果想换 xhtml2pdf，把这个设为 False 并看�
 router = APIRouter()
 
 # 你的真实数据获取逻辑替换这里（从内存、DB、或 session 中取）
-def get_order_data(order_id: str):
+def get_order_data(order: Order):
     # DEMO 数据结构（根据你的 Order 模型字段改名/映射）
     return {
-        "order_id": order_id,
-        "order_date": date.today().strftime("%Y-%m-%d"),
+        "order_id": order.order_id or "12345",
+        "order_date": order.issue_date or date.today().strftime("%Y-%m-%d"),
         "buyer": {
-            "name": "株式会社テスト",
+            "name": order.buyer.name or "株式会社テスト",
             "department": "調達部",
             "person": "山田 太郎",
             "postal": "〒100-0001",
@@ -38,11 +38,8 @@ def get_order_data(order_id: str):
             "address": "東京都千代田区丸の内1-1",
             "tel": "03-9876-5432",
         },
-        "items": [
-            {"name": "ノートPC", "spec": "14inch Core i7/16GB/512GB", "qty": 2, "unit": "台", "unit_price": 120000},
-            {"name": "マウス",   "spec": "無線 2.4GHz",             "qty": 5, "unit": "個", "unit_price": 2000},
-        ],
-        "currency": "JPY",
+        "items": [item.model_dump() for item in order.items],
+        "currency": order.currency or "JPY",
         "tax_rate": 0.10,  # 10% 消費税
         "remarks": "※ 納期は発注後2週間以内。検収後にお支払い。",
         "issuer": {
@@ -115,13 +112,19 @@ def download_order_pdf(order_id: str):
 
 @router.post("/orders/pdf")
 async def create_order_pdf(request: Request):
-    data = get_order_data(order_id)
+
+    order_info = await request.json()
+    order = Order(**order_info)
+    print(order)
+
+    order_id = "12345"
+    data = get_order_data(order)
     if not data:
         raise HTTPException(status_code=404, detail="Order not found")
 
     # 金額計算（必要に応じてあなたのロジックに置き換え）
-    for it in data["items"]:
-        it["amount"] = it["qty"] * it["unit_price"]
+    for item in data["items"]:
+        item["amount"] = item["qty"] * item["unit_price"]
     subtotal = sum(it["amount"] for it in data["items"])
     tax = int(round(subtotal * data["tax_rate"]))
     total = subtotal + tax
