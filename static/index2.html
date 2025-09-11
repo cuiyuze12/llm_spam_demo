@@ -261,35 +261,18 @@ The car is very fast.</pre>
 
 <!-- ▼▼▼ 新規コンテンツ：注文書生成（JSON表示） ▼▼▼ -->
 <div id="order" class="content">
-  <h3>注文書生成（自然言語→構造化JSON）</h3>
+  <h3>注文書生成（自然言語→構造化JSON→注文情報）</h3>
   <p class="muted">ユーザーの日本語依頼を LLM が解析し、バックエンドで Pydantic により厳密検証した JSON を返します。</p>
 
   <details>
     <summary><b>📌 入力例を表示（クリックで展開）</b></summary>
     <div style="margin-top: 8px;">
       例：<br>
-      「請求書を作成してください。買い手はABC商事（東京都中央区、buyer@example.com）、<br>
-       Jetson Orin Nano 8GB（SKU: JET-ORIN-NANO-8G）を3台（単価49,800円）、<br>
-       ACアダプタ120W（SKU: PSU-120W）を1個（単価3,000円）。<br>
-       支払方法は銀行振込、発行日は今日、備考は『9/30までに納品』。」
+      注文書を作成してください。発注者名は山本裕子、<br>
+       MyPhone-5G（SKU: MY001）を3台（単価39,800円）
     </div>
   </details>
 
-  <textarea id="order_text" rows="6" placeholder="注文内容を日本語で入力してください"></textarea>
-  <div class="row">
-    <label for="template_id">テンプレート：</label>
-    <select id="template_id" style="width:auto;">
-      <option value="invoice_default_v1" selected>invoice_default_v1</option>
-      <!-- 将来テンプレートを追加したらここにoptionを増やしてください -->
-    </select>
-    <button onclick="createOrder()">JSONを生成</button>
-    <button class="btn-secondary" onclick="copyOrderJson()">JSONをコピー</button>
-    <span id="order_status" class="muted"></span>
-  </div>
-  <div id="order_output" class="output"><pre id="order_pre">// ここにJSONが表示されます</pre></div>
-
-  <hr>
-  <h3>注文内容の対話補完（不足があれば順に質問します）</h3>
   <textarea id="order_chat_first" rows="3" placeholder="例：スマホを2台注文したいです。請求先は…"></textarea>
   <br>
   <button onclick="startOrderChat()">対話を開始</button>
@@ -309,7 +292,6 @@ The car is very fast.</pre>
 
 <script>
   // ===== 設定 =====
-  const ORDER_API = '/api2/agent/order/create'; // ← FastAPI ルート。必要に応じて変更してください。
 
   function switchTab(tabName) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -393,53 +375,6 @@ The car is very fast.</pre>
   }
 
   // ===== 注文書生成（JSON表示） =====
-  function pretty(obj) {
-    try { return JSON.stringify(obj, null, 2); } catch { return String(obj); }
-  }
-
-  async function createOrder() {
-    const text = document.getElementById('order_text').value.trim();
-    const template_id = document.getElementById('template_id').value;
-    const pre = document.getElementById('order_pre');
-    const status = document.getElementById('order_status');
-
-    if (!text) {
-      pre.textContent = '// 入力が空です';
-      return;
-    }
-    pre.textContent = '生成中...(数秒お待ちください)';
-    status.textContent = '';
-
-    try {
-      const res = await fetch(ORDER_API, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ text, template_id })
-      });
-
-      const contentType = res.headers.get('content-type') || '';
-      if (!res.ok) {
-        const errText = contentType.includes('application/json') ? pretty(await res.json()) : await res.text();
-        pre.textContent = `// Error ${res.status}: ${res.statusText}\n${errText}`;
-        return;
-        }
-
-      const data = contentType.includes('application/json') ? await res.json() : { raw: await res.text() };
-      pre.textContent = pretty(data);
-      status.textContent = '✔ JSONを受信しました';
-    } catch (e) {
-      pre.textContent = `// Request failed: ${e.message}`;
-    }
-  }
-
-  function copyOrderJson() {
-    const pre = document.getElementById('order_pre');
-    const text = pre.textContent || pre.innerText || '';
-    navigator.clipboard.writeText(text).then(
-      () => alert('JSONをコピーしました'),
-      () => alert('コピーに失敗しました')
-    );
-  }
   let orderDraft = null;
   let currentField = null;
 
@@ -525,22 +460,6 @@ The car is very fast.</pre>
       alert("订单数据不是合法 JSON");
       return;
     }
-
-    // 1) 从你的页面状态里拿订单对象 —— 这里给个示例对象
-    //    实际项目中你应当从表单/全局状态里组装这个 order。
-    // const order = window.currentOrder || {
-    //   order_id: "A-20250910-001",
-    //   date: new Date().toISOString().slice(0,10),
-    //   buyer: { name: "株式会社テスト", address: "東京都千代田区1-2-3", contact: "03-1234-5678" },
-    //   seller: { name: "Wonderlusia Inc.", address: "Tokyo", contact: "info@wonderlusia.site" },
-    //   items: [
-    //     { name: "LLM Demo サブスク(1年)", qty: 1, unit_price: 120000, unit: "式" },
-    //     { name: "RAG セットアップ", qty: 1, unit_price: 80000, unit: "件" },
-    //   ],
-    //   currency: "JPY",
-    //   notes: "請求書ベース。支払条件：月末締め翌月末現金払い。"
-    // };
-
 
     try {
       const resp = await fetch('/api2/orders/pdf', {
@@ -633,12 +552,7 @@ The car is very fast.</pre>
       }
     }
   }
-  
-  // function downloadOrder() {
-  //   // 把你现在订单完成时的 order_id 填进来（或从页面/状态读取）
-  //   const orderId = window.currentOrderId || '12345';
-  //   window.location.href = `/api2/orders/${orderId}/pdf`;
-  // }
+
 </script>
 </body>
 </html>

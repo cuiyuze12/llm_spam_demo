@@ -121,27 +121,6 @@ class StepReq(BaseModel):
     field: str           # 这次回答的是哪个字段（上次返回给你的）
     answer: str          # 用户的回答
 
-class OrderRequest(BaseModel):
-    text: str
-    template_id: str = "invoice_default_v1"  # 将来扩展时可支持不同模板
-    
-@app.post("/agent/order/create")
-def create_order(req: OrderRequest):
-    """
-    ユーザーの日本語依頼テキストを受け取り、注文書の構造化JSONを生成して返す。
-    """
-    try:
-        order = parse_order_from_text(req.text)
-        # Pydanticモデルのdictを返すと自動でJSONシリアライズされる
-        return order.model_dump()
-    except Exception as e:
-        # 打印完整的 stack trace 到控制台/日志
-        traceback.print_exc()
-        # 如果你想把堆栈信息作为字符串保存，可以这样：
-        # error_trace = traceback.format_exc()
-        # print(error_trace)
-        raise HTTPException(status_code=500, detail=f"注文書生成に失敗しました: {str(e)}")
-
 @app.post("/agent/order/start")
 def order_start(req: StartReq):
     """
