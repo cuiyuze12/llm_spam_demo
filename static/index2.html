@@ -278,16 +278,19 @@ The car is very fast.</pre>
     </div>
   </details>
 
-  <textarea id="order_chat_first" rows="3" placeholder="例：スマホを2台注文したいです。請求先は…"></textarea>
+  <textarea id="order_chat_first" rows="3" placeholder="例：スマホを2台注文します。発注者名は…"></textarea>
   <br>
   <button onclick="startOrderChat()">対話を開始</button>
   <div id="order_chat_log" class="output" style="min-height:120px;"></div>
-  <div style="margin-top:8px;">
+  <div id="order_missing_input_area" style="margin-top:8px; display:none;">
     <input type="text" id="order_chat_answer" placeholder="ここに回答を入力（例：ABC商事）">
     <button class="btn-secondary" onclick="replyOrderChat()">送信</button>
   </div>
   <pre id="order_chat_result" class="output" style="display:none;"></pre>
-  <button id="btn-download" onclick="downloadOrder()" class="btn">注文書（PDF）をダウンロード</button>
+  <div id="pdf_download_area" style="margin-top:20px; display:none;">
+    <p>JSON形式の注文情報が揃いました。以下のボタンを押すと、注文書PDFを生成・ダウンロードします。</p>
+    <button id="btn-download" onclick="downloadOrder()" class="btn">注文書（PDF）をダウンロード</button>
+    <button id="btn-reset" onclick="resetPage()" class="btn">リセット</button>
   <div id="dl-status" style="display:none; margin-top:8px;">
   <span id="dl-text">生成中...</span>
   <progress id="dl-progress" value="0" max="1" style="width:240px; vertical-align:middle;"></progress>
@@ -403,10 +406,19 @@ The car is very fast.</pre>
       orderDraft = data.draft;
       currentField = data.field;
       log.textContent = `質問：${data.question}`;
+
+      document.getElementById('order_missing_input_area').style.display = 'block';
+      document.getElementById('pdf_download_area').style.display = 'none';
+      document.getElementById('order_chat_answer').value = '';
+
     } else if (data.status === 'done') {
       log.textContent = 'すべての必須項目が揃いました。';
       result.textContent = JSON.stringify(data.order, null, 2);
       result.style.display = 'block';
+
+      document.getElementById('order_missing_input_area').style.display = 'none';
+      document.getElementById('pdf_download_area').style.display = 'block';
+
     } else {
       log.textContent = 'エラー：' + JSON.stringify(data);
     }
@@ -432,11 +444,14 @@ The car is very fast.</pre>
       currentField = data.field;
       log.textContent = `質問：${data.question}`;
       document.getElementById('order_chat_answer').value = '';
+
     } else if (data.status === 'done') {
       log.textContent = 'すべての必須項目が揃いました。';
       result.textContent = JSON.stringify(data.order, null, 2);
       result.style.display = 'block';
       document.getElementById('order_chat_answer').value = '';
+      document.getElementById('order_missing_input_area').style.display = 'none';
+      document.getElementById('pdf_download_area').style.display = 'block';
     } else {
       log.textContent = 'エラー：' + JSON.stringify(data);
     }
@@ -556,6 +571,11 @@ The car is very fast.</pre>
         bar.value = 0;
       }
     }
+  }
+
+  function resetPage() {
+    location.reload();
+    switchTab('order')
   }
 
 </script>

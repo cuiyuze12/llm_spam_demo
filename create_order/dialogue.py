@@ -1,7 +1,7 @@
 import json
 import traceback
 from typing import List, Tuple
-from .schemas import OrderDraft, Order, PartyDraft, OrderItemDraft, Currency, PaymentMethod
+from .schemas import OrderDraft, Order, Party, PartyDraft, OrderItemDraft, Currency, PaymentMethod
 from pydantic import ValidationError
 from datetime import date
 from decimal import Decimal, InvalidOperation
@@ -138,8 +138,9 @@ def to_order_if_complete(d: OrderDraft) -> Tuple[bool, Order | None]:
     data.setdefault("issue_date", date.today())
 
     # （可选）再做一次日文到代码的映射
-    data["currency"] = Currency.JPY
-    data["payment_method"] = PaymentMethod.BANK_TRANSFER
+    data["currency"] = "JPY"
+    data["payment_method"] = "BANK_TRANSFER"
+    data["seller"] = Party(**{"name": "default seller name"})
 
     try:
         order = Order(**data)  # 严格校验（含 enum + 金额 + email 等）
