@@ -128,9 +128,9 @@ def order_start(req: StartReq):
     """
     try:
         draft = parse_order_from_text(req.text)  # 这里请让 parse 返回 OrderDraft（上一条已给）
-        if isinstance(draft, OrderDraft) is False:
-            # 如果你的 parse 仍返回严格 Order，也可以先转成 Draft；建议直接改 parse 返回 Draft
-            draft = OrderDraft(**draft.model_dump())
+        #if isinstance(draft, OrderDraft) is False:
+        #    # 如果你的 parse 仍返回严格 Order，也可以先转成 Draft；建议直接改 parse 返回 Draft
+        #    draft = OrderDraft(**draft.model_dump())
         missing = calc_missing(draft)
         if not missing:
             done, order = to_order_if_complete(draft)

@@ -111,32 +111,15 @@ def parse_order_from_text(request_text: str) -> Order:
 
     draft = OrderDraft(**data)  # ← 允许很多字段为 None
 
+    return draft
+    
+    # TODO : delete below if not needed
     # 关键检查：若仍缺必要字段，就直接返回“草稿JSON + missing_fields”
-    missing = calc_missing(draft)  # 你自定义：如 buyer.name / items[0].qty / unit_price 等
-    if missing:
-        # 返回草稿，前端显示并引导用户补全；也可把 missing_fields 一并返回
-        return draft
+    # missing = calc_missing(draft)  # 你自定义：如 buyer.name / items[0].qty / unit_price 等
+    # if missing:
+    #    # 返回草稿，前端显示并引导用户补全；也可把 missing_fields 一并返回
+    #    return draft
 
     # 字段齐全 → 构造严格 Order（会触发数值约束校验）
-    order = to_strict_order(draft)  # 把 Optional 填满后转为 Order
-    return order
-    # JSON 抽出（万一JSON以外が混入した場合の簡易ガード）
-    # try:
-    #     data = json.loads(raw)
-    # except Exception:
-    #     start, end = raw.find("{"), raw.rfind("}")
-    #     if start >= 0 and end >= 0:
-    #         data = json.loads(raw[start:end+1])
-    #     else:
-    #         raise
-
-    # # 既定値の補完（例：発行日が無ければ今日）
-    # data.setdefault("issue_date", date.today().isoformat())
-
-    # # Pydantic で厳密検証（日本語キーでも alias で受付・値はバリデータで正規化）
-    # try:
-    #     order = Order(**data)
-    #     return order
-    # except ValidationError as e:
-    #     # ここでエラー内容 e.errors() を LLM に再提示して再生成させるリトライ戦略も可
-    #     raise
+    # order = to_strict_order(draft)  # 把 Optional 填满后转为 Order
+    # return order
