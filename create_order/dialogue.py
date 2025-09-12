@@ -48,8 +48,9 @@ def calc_missing(d: OrderDraft) -> List[str]:
 def next_question(field: str) -> str:
     # 日文提问模板
     mapping = {
-        "buyer.name": "注文者の氏名を教えてください。",
-        "items[0].name": "商品名（例：スマートフォン機種名）を教えてください。",
+        "buyer.name": "発注者の氏名を教えてください。",
+        "items[0].sku": "品目コードを教えてください。",
+        "items[0].name": "品目名を教えてください。",
         "items[0].qty": "数量はいくつですか？（半角の正の整数）",
         "items[0].unit_price": "単価はいくらですか？（税抜/税込のどちらでも。半角数字、例：49800）",
     }

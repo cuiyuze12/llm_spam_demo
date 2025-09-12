@@ -414,7 +414,6 @@ The car is very fast.</pre>
     } else if (data.status === 'done') {
       log.textContent = 'すべての必須項目が揃いました。';
       result.textContent = JSON.stringify(data.order, null, 2);
-      result.style.display = 'block';
 
       document.getElementById('order_missing_input_area').style.display = 'none';
       document.getElementById('pdf_download_area').style.display = 'block';
@@ -448,7 +447,7 @@ The car is very fast.</pre>
     } else if (data.status === 'done') {
       log.textContent = 'すべての必須項目が揃いました。';
       result.textContent = JSON.stringify(data.order, null, 2);
-      result.style.display = 'block';
+      
       document.getElementById('order_chat_answer').value = '';
       document.getElementById('order_missing_input_area').style.display = 'none';
       document.getElementById('pdf_download_area').style.display = 'block';
@@ -574,8 +573,14 @@ The car is very fast.</pre>
   }
 
   function resetPage() {
-    location.reload();
-    switchTab('order')
+    document.getElementById('order_chat_first').value = '';
+    document.getElementById('order_chat_log').textContent = '';
+    document.getElementById('order_chat_result').textContent = '';
+    document.getElementById('order_chat_result').style.display = 'none';
+    document.getElementById('order_missing_input_area').style.display = 'none';
+    document.getElementById('pdf_download_area').style.display = 'none';
+    orderDraft = null;
+    currentField = null;
   }
 
 </script>
