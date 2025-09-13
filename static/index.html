@@ -399,7 +399,7 @@ The car is very fast.</pre>
     if (!text) { log.textContent = '入力が空です。'; return; }
     log.textContent = '解析中...';
 
-    const res = await fetch('/api2/agent/order/start', {
+    const res = await fetch('/agent/order/start', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ text, template_id: 'invoice_default_v1' })
     });
@@ -435,7 +435,7 @@ The car is very fast.</pre>
 
     log.textContent = '更新中...';
 
-    const res = await fetch('/api2/agent/order/reply', {
+    const res = await fetch('/agent/order/reply', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ draft: orderDraft, field: currentField, answer: ans })
     });
@@ -484,7 +484,7 @@ The car is very fast.</pre>
     }
 
     try {
-      const resp = await fetch('/api2/orders/pdf', {
+      const resp = await fetch('/orders/pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
