@@ -37,12 +37,17 @@
     .content.active {
       display: block;
     }
-    input[type="text"] {
-      width: 80%;
+    /* 统一表单控件样式 */
+    input[type="text"],
+    textarea,
+    select {
+      width: 80%;           /* 或者 100%，看你想要的宽度 */
+      max-width: 100%;
       padding: 10px;
       margin: 10px 0;
       border: 1px solid #ccc;
       border-radius: 4px;
+      box-sizing: border-box;
     }
     button {
       padding: 10px 20px;
@@ -60,7 +65,16 @@
       padding: 10px;
       background-color: #f1f1f1;
       border-left: 4px solid #007BFF;
+      white-space: pre-wrap; 
+      word-break: break-word;
     }
+    .output pre {
+      margin: 0; padding: 12px; background: #0b1020; color: #e6edf3; overflow-x: auto; border-radius: 6px;
+    }
+    .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .muted { color: #666; font-size: 12px; }
+    .btn-secondary { background-color: #6c757d; }
+    .btn-secondary:hover { background-color: #5c636a; }
 
     details summary {
       list-style: none;
@@ -96,6 +110,8 @@
       padding-left: 20px;
       font-size: 14px;
     }
+
+    .btn[disabled] { opacity: 0.6; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -114,6 +130,9 @@
   <div class="tab active" onclick="switchTab('llm')">自作LLM</div>
   <div class="tab" onclick="switchTab('rag')">自作RAG</div>
   <div class="tab" onclick="switchTab('agent')">自作AIエージェント</div>
+    <!-- ▼▼▼ 新規タブ：注文書生成 ▼▼▼ -->
+  <div class="tab" onclick="switchTab('order')">発注AIエージェント</div>
+  <!-- ▲▲▲ 新規タブここまで ▲▲▲ -->
 </div>
 
 <div id="llm" class="content active">
@@ -249,7 +268,42 @@ The car is very fast.</pre>
   <div id="agent_output" class="output"></div>
 </div>
 
+<!-- ▼▼▼ 新規コンテンツ：注文書生成（JSON表示） ▼▼▼ -->
+<div id="order" class="content">
+  <h3>注文書生成（自然言語→構造化JSON→注文情報）</h3>
+  <p class="muted">ユーザーの日本語依頼を LLM が解析し、バックエンドで Pydantic により厳密検証した JSON を返します。</p>
+
+  <details>
+    <summary><b>📌 入力例を表示（クリックで展開）</b></summary>
+    <div style="margin-top: 8px;">
+      例：<br>
+      注文書を作成してください。発注者名は山本裕子、<br>
+       MyPhone-5G（SKU: MY001）を3台（単価39,800円）
+    </div>
+  </details>
+
+  <textarea id="order_chat_first" rows="3" placeholder="例：スマホを2台注文します。発注者名は…"></textarea>
+  <br>
+  <button onclick="startOrderChat()">対話を開始</button>
+  <div id="order_chat_log" class="output" style="min-height:120px;"></div>
+  <div id="order_missing_input_area" style="margin-top:8px; display:none;">
+    <input type="text" id="order_chat_answer" placeholder="ここに回答を入力（例：ABC商事）">
+    <button class="btn-secondary" onclick="replyOrderChat()">送信</button>
+  </div>
+  <pre id="order_chat_result" class="output" style="display:none;"></pre>
+  <div id="pdf_download_area" style="margin-top:20px; display:none;">
+    <button id="btn-download" onclick="downloadOrder()">注文書（PDF）をダウンロード</button>
+    <button id="btn-reset" onclick="resetPage()" class="btn-secondary">リセット</button>
+  <div id="dl-status" style="display:none; margin-top:8px;">
+  <span id="dl-text">生成中...</span>
+  <progress id="dl-progress" value="0" max="1" style="width:240px; vertical-align:middle;"></progress>
+</div>
+</div>
+<!-- ▲▲▲ 新規コンテンツここまで ▲▲▲ -->
+
 <script>
+  // ===== 設定 =====
+
   function switchTab(tabName) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
@@ -330,6 +384,208 @@ The car is very fast.</pre>
     const data = await res.json();
     document.getElementById("agent_output").innerText = data.answer || "応答がありません";
   }
+  
+  // ===== 注文書生成（JSON表示） =====
+  let orderDraft = null;
+  let currentField = null;
+
+  async function startOrderChat() {
+    const text = document.getElementById('order_chat_first').value.trim();
+    const log = document.getElementById('order_chat_log');
+    const result = document.getElementById('order_chat_result');
+    result.style.display = 'none';
+    result.textContent = '';
+
+    if (!text) { log.textContent = '入力が空です。'; return; }
+    log.textContent = '解析中...';
+
+    const res = await fetch('/api2/agent/order/start', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ text, template_id: 'invoice_default_v1' })
+    });
+    const data = await res.json();
+
+    if (data.status === 'ask') {
+      orderDraft = data.draft;
+      currentField = data.field;
+      log.textContent = `質問：${data.question}`;
+
+      document.getElementById('order_missing_input_area').style.display = 'block';
+      document.getElementById('pdf_download_area').style.display = 'none';
+      document.getElementById('order_chat_answer').value = '';
+
+    } else if (data.status === 'done') {
+      log.textContent = 'すべての必須項目が揃いました。以下のボタンを押すと、注文書PDFを生成・ダウンロードします。';
+      result.textContent = JSON.stringify(data.order, null, 2);
+
+      document.getElementById('order_missing_input_area').style.display = 'none';
+      document.getElementById('pdf_download_area').style.display = 'block';
+
+    } else {
+      log.textContent = 'エラー：' + JSON.stringify(data);
+    }
+  }
+
+  async function replyOrderChat() {
+    const ans = document.getElementById('order_chat_answer').value.trim();
+    const log = document.getElementById('order_chat_log');
+    const result = document.getElementById('order_chat_result');
+    if (!orderDraft || !currentField) { log.textContent = '先に対話を開始してください。'; return; }
+    if (!ans) { return; }
+
+    log.textContent = '更新中...';
+
+    const res = await fetch('/api2/agent/order/reply', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ draft: orderDraft, field: currentField, answer: ans })
+    });
+    const data = await res.json();
+
+    if (data.status === 'ask') {
+      orderDraft = data.draft;
+      currentField = data.field;
+      log.textContent = `質問：${data.question}`;
+      document.getElementById('order_chat_answer').value = '';
+
+    } else if (data.status === 'done') {
+      log.textContent = 'すべての必須項目が揃いました。以下のボタンを押すと、注文書PDFを生成・ダウンロードします。';
+      result.textContent = JSON.stringify(data.order, null, 2);
+      
+      document.getElementById('order_chat_answer').value = '';
+      document.getElementById('order_missing_input_area').style.display = 'none';
+      document.getElementById('pdf_download_area').style.display = 'block';
+    } else {
+      log.textContent = 'エラー：' + JSON.stringify(data);
+    }
+  }
+  
+  async function downloadOrder() {
+    const btn = document.getElementById('btn-download');
+    const panel = document.getElementById('dl-status');
+    const text = document.getElementById('dl-text');
+    const bar  = document.getElementById('dl-progress');
+
+    const ctrl = new AbortController();
+    const timeoutMs = 120000; // 可选：超时取消（120秒）
+    const timeoutId = setTimeout(() => ctrl.abort(), timeoutMs);
+
+    // UI: 进入loading
+    setLoading(true);
+
+    const rawText = document.getElementById('order_chat_result').textContent;
+
+    let payload;
+    try {
+      payload = JSON.parse(rawText);   // 转成对象
+    } catch (e) {
+      console.error("不是合法的 JSON:", e);
+      alert("订单数据不是合法 JSON");
+      return;
+    }
+
+    try {
+      const resp = await fetch('/api2/orders/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: ctrl.signal
+      });
+
+      if (!resp.ok) {
+        // 尝试读取错误详情
+        let msg = `${resp.status} ${resp.statusText}`;
+        try {
+          const err = await resp.json();
+          if (err?.detail) msg += `\n${(typeof err.detail === 'string') ? err.detail : JSON.stringify(err.detail)}`;
+        } catch (_) {}
+        throw new Error(msg);
+      }
+
+      // 从响应头取文件名（Content-Disposition）
+      const cd = resp.headers.get('Content-Disposition') || '';
+      let filename = 'order.pdf';
+      const m = cd.match(/filename\*?=(?:UTF-8'')?([^;]+)/i);
+      if (m) filename = decodeURIComponent(m[1].replace(/"/g, ''));
+
+      // 如果支持流 & 有 Content-Length 就显示进度
+      const total = Number(resp.headers.get('Content-Length')) || 0;
+
+      let blob;
+      if (resp.body && 'getReader' in resp.body && total > 0) {
+        const reader = resp.body.getReader();
+        const chunks = [];
+        let received = 0;
+        text.textContent = 'ダウンロード中...';
+        bar.removeAttribute('hidden');
+        bar.max = 1;
+        bar.value = 0;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          received += value.length;
+          bar.value = received / total; // 更新进度条
+        }
+        blob = new Blob(chunks, { type: 'application/pdf' });
+      } else {
+        // 退化处理：无法测量进度（例如无Content-Length）
+        text.textContent = 'ダウンロード中...';
+        bar.setAttribute('hidden', 'hidden');
+        blob = await resp.blob();
+      }
+
+      // 触发保存
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      // 可选：成功提示
+      text.textContent = '完了';
+      setTimeout(() => setLoading(false), 600); // 稍停一下再恢复
+    } catch (err) {
+      console.error(err);
+      text.textContent = '失敗しました';
+      alert('PDFの生成/ダウンロードに失敗しました。\n' + (err?.message || err));
+      setLoading(false);
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    function setLoading(loading) {
+      if (loading) {
+        btn.disabled = true;
+        btn.setAttribute('aria-busy', 'true');
+        panel.style.display = 'block';
+        text.textContent = '生成中...';
+        bar.removeAttribute('hidden');
+        bar.value = 0;
+      } else {
+        btn.disabled = false;
+        btn.removeAttribute('aria-busy');
+        panel.style.display = 'none';
+        text.textContent = '';
+        bar.value = 0;
+      }
+    }
+  }
+
+  function resetPage() {
+    document.getElementById('order_chat_first').value = '';
+    document.getElementById('order_chat_log').textContent = '';
+    document.getElementById('order_chat_result').textContent = '';
+    document.getElementById('order_chat_result').style.display = 'none';
+    document.getElementById('order_missing_input_area').style.display = 'none';
+    document.getElementById('pdf_download_area').style.display = 'none';
+    orderDraft = null;
+    currentField = null;
+  }
+
 </script>
 </body>
 </html>

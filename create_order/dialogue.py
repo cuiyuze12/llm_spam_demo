@@ -1,7 +1,7 @@
 import json
 import traceback
 from typing import List, Tuple
-from .schemas import OrderDraft, Order, Party, PartyDraft, OrderItemDraft, Currency, PaymentMethod
+from .schemas import OrderDraft, Order, Party, PartyDraft, OrderItemDraft
 from pydantic import ValidationError
 from datetime import date
 from decimal import Decimal, InvalidOperation

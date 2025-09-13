@@ -1,10 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import StreamingResponse, Response
-from fastapi.encoders import jsonable_encoder
-from starlette.concurrency import run_in_threadpool
+from fastapi.responses import StreamingResponse
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from weasyprint import HTML, CSS
-from pathlib import Path
 from io import BytesIO
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP, getcontext
@@ -56,10 +53,6 @@ def get_order_data(order: Order):
 # Jinja2 環境
 TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "..", "templates")
 STATIC_DIR     = os.path.join(os.path.dirname(__file__), "..", "static")
-env = Environment(
-    loader=FileSystemLoader(TEMPLATES_DIR),
-    autoescape=select_autoescape(['html', 'xml'])
-)
 
 jinja_env = Environment(
     loader=FileSystemLoader(TEMPLATES_DIR),
@@ -128,40 +121,3 @@ async def create_order_pdf(request: Request):
     }
 
     return StreamingResponse(pdf_io, media_type="application/pdf", headers=headers)
-
-async def create_order_pdf2_backup(request: Request):
-    order = get_order_data("12234")
-
-    # 1) 渲染 HTML
-    try:
-        template = env.get_template("order.html.j2")
-        html_str = template.render(order=jsonable_encoder(order))
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"template render error: {e}")
-
-    # 2) 生成 PDF（阻塞 → 放到线程池）
-    if USE_WEASYPRINT:
-        def _make_pdf(html_text: str) -> bytes:
-            return HTML(string=html_text, base_url=str(TEMPLATES_DIR)).write_pdf()
-        try:
-            pdf_bytes = await run_in_threadpool(_make_pdf, html_str)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"pdf generate error: {e}")
-    else:
-        # 使用 xhtml2pdf 的示例
-        # def _make_pdf(html_text: str) -> bytes:
-        #     dest = BytesIO()
-        #     pisa_status = pisa.CreatePDF(html_text, dest=dest, encoding='utf-8')
-        #     if pisa_status.err:
-        #         raise RuntimeError("xhtml2pdf failed")
-        #     return dest.getvalue()
-        # pdf_bytes = await run_in_threadpool(_make_pdf, html_str)
-        raise HTTPException(status_code=500, detail="xhtml2pdf path disabled")
-
-    # 3) 返回 PDF
-    filename = f"order_{order.order_id}.pdf"
-    headers = {
-        # 兼容非 ASCII 文件名
-        "Content-Disposition": f"attachment; filename*=UTF-8''{filename}"
-    }
-    return Response(content=pdf_bytes, media_type="application/pdf", headers=headers)
