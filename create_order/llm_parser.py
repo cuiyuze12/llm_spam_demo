@@ -112,14 +112,3 @@ def parse_order_from_text(request_text: str) -> Order:
     draft = OrderDraft(**data)  # ← 允许很多字段为 None
 
     return draft
-    
-    # TODO : delete below if not needed
-    # 关键检查：若仍缺必要字段，就直接返回“草稿JSON + missing_fields”
-    # missing = calc_missing(draft)  # 你自定义：如 buyer.name / items[0].qty / unit_price 等
-    # if missing:
-    #    # 返回草稿，前端显示并引导用户补全；也可把 missing_fields 一并返回
-    #    return draft
-
-    # 字段齐全 → 构造严格 Order（会触发数值约束校验）
-    # order = to_strict_order(draft)  # 把 Optional 填满后转为 Order
-    # return order
