@@ -1,16 +1,25 @@
+import traceback
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from finetuned_model.load_classifier import load_model_and_tokenizer, classify_review
 from finetuned_model.load_generator import load_generation_model, generate_text
+from create_order.llm_parser import parse_order_from_text
+from create_order.order_pdf import router as order_pdf_router
 from rag.rag_retriever import real_rag_answer
 from agent.agent_chatter import run_bedrock_agent
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 import time
 
+from create_order.schemas import OrderDraft, Order
+from create_order.dialogue import calc_missing, next_question, apply_single_answer, to_order_if_complete
+
+from typing import List, Optional
+
 app = FastAPI()
+app.include_router(order_pdf_router)
 
 # ========== 配置 ==========
 RATE_LIMIT = 60  # 每个 IP 每分钟最多请求次数
@@ -118,3 +127,94 @@ async def agent_chat(req: AgentRequest):
         "answer": result["text"],
         "category": result["category"]
     }
+
+# ===== 新規追加: 注文書生成 =====
+class StartReq(BaseModel):
+    text: str
+    template_id: str = "invoice_default_v1"
+
+class StepReq(BaseModel):
+    draft: dict          # 前端携带当前的 OrderDraft JSON
+    field: str           # 这次回答的是哪个字段（上次返回给你的）
+    answer: str          # 用户的回答
+
+class OrderRequest(BaseModel):
+    text: str
+    template_id: str = "invoice_default_v1"  # 将来扩展时可支持不同模板
+    
+@app.post("/agent/order/create")
+def create_order(req: OrderRequest):
+    """
+    ユーザーの日本語依頼テキストを受け取り、注文書の構造化JSONを生成して返す。
+    """
+    try:
+        order = parse_order_from_text(req.text)
+        # Pydanticモデルのdictを返すと自動でJSONシリアライズされる
+        return order.model_dump()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"注文書生成に失敗しました: {str(e)}")
+
+@app.post("/agent/order/start")
+def order_start(req: StartReq):
+    """
+    第一次解析：把自然语言转为 OrderDraft，并给出第一个问题。
+    """
+    try:
+        draft = parse_order_from_text(req.text)  # 这里请让 parse 返回 OrderDraft（上一条已给）
+        missing = calc_missing(draft)
+        if not missing:
+            done, order = to_order_if_complete(draft)
+            if done: return {"status":"done", "order": order.model_dump()}
+        field = missing[0]
+        return {
+            "status": "ask",
+            "question": next_question(field),
+            "field": field,
+            "draft": draft.model_dump(by_alias=True, exclude_none=True, mode="json")
+        }
+    except Exception as e:
+        # 打印完整的 stack trace 到控制台/日志
+        traceback.print_exc()
+        raise HTTPException(500, f"解析失败: {e}")
+
+@app.post("/agent/order/reply")
+def order_reply(req: StepReq):
+    """
+    后续轮次：只填当前字段，生成新的 draft；若已齐全则返回最终 order。
+    """
+    try:
+        payload = dict(req.draft or {})
+        
+        draft = OrderDraft(**payload)
+        draft2 = apply_single_answer(draft, req.field, req.answer)
+
+        # 计算缺失项
+        missing = calc_missing(draft2)
+
+        # 1) 还有缺失 → 继续问下一个字段
+        if missing:  # 非空才取 missing[0]
+            field = missing[0]
+            return {
+                "status": "ask",
+                "question": next_question(field),
+                "field": field,
+                "draft": draft2.model_dump(by_alias=True, exclude_none=True, mode="json"),
+            }
+
+        # 2) 看是否已经可以生成最终订单
+        done, order = to_order_if_complete(draft2)
+        if done:
+            return {"status":"done", "order": order.model_dump(by_alias=True, mode="json")}
+
+        # 3) 防御式兜底：
+        #    如果 missing 为空但仍未 done，说明 calc_missing 与 to_order_if_complete 存在不一致或数据异常
+        return {
+            "status": "ask",
+            "question": "入力を確認できませんでした。もう一度ご回答ください。",
+            "field": req.field,  # 或者给个固定的首要字段，如 "buyer.name"
+            "draft": draft2.model_dump(by_alias=True, exclude_none=True, mode="json"),
+        }
+
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"更新失败: {e}")
