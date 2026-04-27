@@ -3,7 +3,7 @@ import boto3
 
 # 固定使用一组 Agent ID 与 Alias ID
 AGENT_ID = "KE5K7EJATO"
-AGENT_ALIAS_ID = "5QE209YEBI"
+AGENT_ALIAS_ID = "ACMTG90GBC"
 
 # 每个会话独立 UUID
 session_id = str(uuid.uuid1())

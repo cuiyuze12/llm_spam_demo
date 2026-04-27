@@ -22,7 +22,7 @@ prompt = ChatPromptTemplate.from_template(
 
 model = ChatBedrock(
     client=kb_client,
-    model_id="anthropic.claude-3-sonnet-20240229-v1:0",
+    model_id="us.anthropic.claude-haiku-4-5-20251001-v1:0",
     model_kwargs={"max_tokens": 1000},
 )
 
